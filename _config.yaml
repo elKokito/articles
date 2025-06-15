@@ -1,0 +1,6 @@
+title: auto generated articles to read on the go
+description: reading
+markdown: kramdown
+
+plugins:
+  - jekyll-sitemap
