@@ -1,3 +1,9 @@
+---
+layout: post
+title: neovim within bubble
+categories: [go, bubbletea, neovim]
+tags: [bubbletea, go, neovim]
+---
 ## The Neovim-in-TUI Symbiosis: Seamlessly Editing Text in Go with Bubble Tea
 
 Terminal User Interfaces (TUIs) built in Go are powerful, fast, and portable. Frameworks like [Bubble Tea](https://github.com/charmbracelet/bubbletea) have made creating them more accessible than ever. However, one common challenge is rich text input. While components like the `textarea` from the [Bubbles](https://github.com/charmbracelet/bubbles) library are excellent for simple, multi-line input, they can't compete with the power and familiarity of a dedicated terminal editor like Neovim.
