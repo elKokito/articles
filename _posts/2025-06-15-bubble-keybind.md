@@ -1,3 +1,9 @@
+---
+layout: post
+title: keybind
+categories: [go, bubbletea, neovim]
+tags: [bubbletea, go, neovim]
+---
 ## Declarative Keybindings in Bubble Tea: A Guide to the `bubbles/key` Package
 
 Building a rich, interactive terminal user interface (TUI) with Bubble Tea is a rewarding experience. As your application grows beyond simple views, you'll inevitably need to handle user input in a structured, maintainable way. While you can handle `tea.KeyMsg` events directly with a `switch` statement, this can become cumbersome, especially when dealing with multiple components, context-sensitive actions, and help menus.
