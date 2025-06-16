@@ -12,3 +12,7 @@ collections:
   bubbletea:
     output: true
     permalink: /bubbletea/:title
+
+feed:
+  collections:
+    - bubbletea
