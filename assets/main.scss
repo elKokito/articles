@@ -1,0 +1,12 @@
+---
+// ---
+// This front matter is required for Jekyll to process the file.
+---
+
+// Import the Minima theme's styles.
+@import "minima";
+
+// Override the max-width for the main content wrapper.
+.wrapper {
+  max-width: 90%; // You can adjust this value. The default is around 800px.
+}
