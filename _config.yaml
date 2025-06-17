@@ -2,9 +2,15 @@ title: elkokito
 description: reading
 markdown: kramdown
 
+remote_theme: jekyll/minima
+
 plugins:
   - jekyll-sitemap
   - jekyll-feed
+  - jekyll-remote-theme
+
+minima:
+  skin: dark
 
 permalink: /:categories/:title/
 
