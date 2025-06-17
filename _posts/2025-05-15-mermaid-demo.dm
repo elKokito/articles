@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Mermaid Diagram Showcase
+title: mermaid
 description: Live examples of every diagram grammar supported by Mermaid v11
 ---
 
