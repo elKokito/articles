@@ -18,15 +18,11 @@ collections:
   bubbletea:
     output: true
     permalink: /bubbletea/:title
-  test:
-    output: true
-    permalink: /test/:title
   golang:
     output: true
-    permalink: /test/:title
+    permalink: /golang/:title
 
 feed:
   collections:
     - bubbletea
-    - test
     - golang

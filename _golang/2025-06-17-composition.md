@@ -1,4 +1,10 @@
-Of course. Here is the article.
+---
+layout: post
+title: composition
+categories: [golang]
+tags: [golang]
+---
+
 
 # Mastering Go’s Composition Model: Struct Embedding for DevOps Engineers
 

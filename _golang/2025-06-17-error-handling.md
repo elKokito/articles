@@ -1,4 +1,10 @@
-Of course, here is the comprehensive technical article on idiomatic error handling in Go.
+---
+layout: post
+title: error
+categories: [golang]
+tags: [golang]
+---
+
 
 ## Executive Overview
 

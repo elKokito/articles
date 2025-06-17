@@ -1,4 +1,10 @@
-Of course, here's the comprehensive technical article on Go's implicit interfaces for DevOps engineers.
+---
+layout: post
+title: interfaces
+categories: [golang]
+tags: [golang]
+---
+
 
 ## Mastering Go's Implicit Interfaces: A Guide for DevOps Engineers
 

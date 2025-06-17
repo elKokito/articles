@@ -1,4 +1,10 @@
-Of course. Here is the comprehensive technical article on Go generics for an audience of DevOps engineers.
+---
+layout: post
+title: type-parameter
+categories: [golang]
+tags: [golang]
+---
+
 
 ## Go Generics for DevOps: Writing Reusable, Type-Safe Infrastructure Code
 

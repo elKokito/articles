@@ -1,6 +1,12 @@
-Of course. Here is the comprehensive technical article on Goroutines and Channels in Go.
+---
+layout: post
+title: goroutine
+categories: [golang]
+tags: [golang]
+---
 
-## Goroutines & Channels: The DNA of Go's Concurrency
+
+# Goroutines & Channels: The DNA of Go's Concurrency
 
 ## Executive Overview
 
