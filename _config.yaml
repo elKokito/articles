@@ -21,8 +21,12 @@ collections:
   test:
     output: true
     permalink: /test/:title
+  golang:
+    output: true
+    permalink: /test/:title
 
 feed:
   collections:
     - bubbletea
     - test
+    - golang
