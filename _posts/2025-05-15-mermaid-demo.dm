@@ -1,21 +1,5 @@
-Below is a drop-in **Markdown file** that includes a miniature example for every diagram grammar listed in the Mermaid v11 syntax reference. Save it as `mermaid-showcase.md` (or any name you like), give it a YAML front-matter block so Jekyll treats it as a page, and—provided your site template loads the `mermaid.min.js` script or you let GitHub render the blocks in-place—you’ll get a live catalogue of all diagram types on your GitHub Pages site.([docs.github.com][1], [mermaid.js.org][2], [mermaid.js.org][3], [mermaid.js.org][4], [mermaid.js.org][5], [mermaid.js.org][6], [mermaid.js.org][7], [mermaid.js.org][8], [mermaid.js.org][9], [mermaid.js.org][10])
-
-> **Tip for Pages:** add
->
-> ```html
-> <script type="module">
->   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
->   mermaid.initialize({ startOnLoad: true });
-> </script>
-> ```
->
-> in your layout (or `_includes/head.html`) to ensure every diagram renders during page load.([mermaid.js.org][10])
-
 ---
-
-````markdown
----
-layout: default          # adapt to your theme
+layout: post
 title: Mermaid Diagram Showcase
 description: Live examples of every diagram grammar supported by Mermaid v11
 ---
@@ -277,19 +261,3 @@ zenuml
   A -> B: Request
   B --> A: Response
 ```
-
----
-
-Copy this file into your repository, make sure Mermaid is being initialised on the page, and you’ll have a living gallery that demonstrates every grammar currently documented in Mermaid v11.
-
-[1]: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams?utm_source=chatgpt.com "Creating diagrams - GitHub Docs"
-[2]: https://mermaid.js.org/intro/syntax-reference.html "Diagram Syntax | Mermaid"
-[3]: https://mermaid.js.org/syntax/flowchart.html?utm_source=chatgpt.com "Flowcharts Syntax | Mermaid - JS.ORG"
-[4]: https://mermaid.js.org/syntax/pie.html?utm_source=chatgpt.com "Pie chart diagrams | Mermaid - JS.ORG"
-[5]: https://mermaid.js.org/syntax/sequenceDiagram?utm_source=chatgpt.com "Sequence diagrams | Mermaid - JS.ORG"
-[6]: https://mermaid.js.org/syntax/c4.html?utm_source=chatgpt.com "C4 Diagrams | Mermaid - JS.ORG"
-[7]: https://mermaid.js.org/syntax/xyChart.html?utm_source=chatgpt.com "XY Chart | Mermaid - JS.ORG"
-[8]: https://mermaid.js.org/syntax/mindmap.html?utm_source=chatgpt.com "Mindmap | Mermaid - JS.ORG"
-[9]: https://mermaid.js.org/config/schema-docs/config-defs-pie-diagram-config.html?utm_source=chatgpt.com "Pie Diagram Config Schema | Mermaid - JS.ORG"
-[10]: https://mermaid.js.org/intro/getting-started.html?utm_source=chatgpt.com "Mermaid User Guide | Mermaid - JS.ORG"
-

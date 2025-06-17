@@ -1,5 +1,5 @@
 title: elkokito
-description: reading
+description: much wow
 markdown: kramdown
 
 remote_theme: jekyll/minima
@@ -18,7 +18,11 @@ collections:
   bubbletea:
     output: true
     permalink: /bubbletea/:title
+  test:
+    output: true
+    permalink: /test/:title
 
 feed:
   collections:
     - bubbletea
+    - test
