@@ -38,128 +38,128 @@ Let's build a command-line tool that allows a user to ask for the status of a Ku
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-	"os"
+  "context"
+  "encoding/json"
+  "fmt"
+  "log"
+  "os"
 
-	"google.golang.org/genai"
+  "google.golang.org/genai"
 )
 
 // getKubeServiceStatus is our actual Go function that simulates checking a service status.
 // In a real application, this would use the Kubernetes client-go library to interact with a cluster.
 func getKubeServiceStatus(namespace, serviceName string) (string, error) {
-	fmt.Printf("[Executing function: getKubeServiceStatus(namespace: %s, serviceName: %s)]\n", namespace, serviceName)
-	// Simulate checking the service
-	if namespace == "production" && serviceName == "api-gateway" {
-		return `{"status": "Healthy", "ready_pods": 3, "total_pods": 3}`, nil
-	}
-	if namespace == "staging" && serviceName == "user-db" {
-		return `{"status": "Degraded", "ready_pods": 0, "total_pods": 1, "error": "CrashLoopBackOff"}`, nil
-	}
-	return "", fmt.Errorf("service '%s' in namespace '%s' not found", serviceName, namespace)
+  fmt.Printf("[Executing function: getKubeServiceStatus(namespace: %s, serviceName: %s)]\n", namespace, serviceName)
+  // Simulate checking the service
+  if namespace == "production" && serviceName == "api-gateway" {
+	return `{"status": "Healthy", "ready_pods": 3, "total_pods": 3}`, nil
+  }
+  if namespace == "staging" && serviceName == "user-db" {
+	return `{"status": "Degraded", "ready_pods": 0, "total_pods": 1, "error": "CrashLoopBackOff"}`, nil
+  }
+  return "", fmt.Errorf("service '%s' in namespace '%s' not found", serviceName, namespace)
 }
 
 func main() {
-	ctx := context.Background()
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		log.Fatal("GEMINI_API_KEY environment variable not set")
-	}
+  ctx := context.Background()
+  apiKey := os.Getenv("GEMINI_API_KEY")
+  if apiKey == "" {
+	log.Fatal("GEMINI_API_KEY environment variable not set")
+  }
 
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  apiKey,
-		Backend: genai.BackendGeminiAPI,
-	})
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	defer client.Close()
+  client, err := genai.NewClient(ctx, &genai.ClientConfig{
+	APIKey:  apiKey,
+	Backend: genai.BackendGeminiAPI,
+  })
+  if err != nil {
+	log.Fatalf("Failed to create client: %v", err)
+  }
+  defer client.Close()
 
-	model := "gemini-1.5-pro-latest"
+  model := "gemini-1.5-pro-latest"
 
-	// 1. Define the function declaration and the schema for its parameters.
-	// This tells the model about the tool it can use.
-	getKubeServiceStatusDecl := &genai.FunctionDeclaration{
-		Name:        "getKubeServiceStatus",
-		Description: "Get the status of a specific service in a Kubernetes cluster.",
-		Parameters: &genai.Schema{
-			Type: genai.TypeObject,
-			Properties: map[string]*genai.Schema{
-				"namespace": {
-					Type:        genai.TypeString,
-					Description: "The Kubernetes namespace of the service.",
-				},
-				"serviceName": {
-					Type:        genai.TypeString,
-					Description: "The name of the service.",
-				},
-			},
-			Required: []string{"namespace", "serviceName"},
+  // 1. Define the function declaration and the schema for its parameters.
+  // This tells the model about the tool it can use.
+  getKubeServiceStatusDecl := &genai.FunctionDeclaration{
+	Name:        "getKubeServiceStatus",
+	Description: "Get the status of a specific service in a Kubernetes cluster.",
+	Parameters: &genai.Schema{
+	  Type: genai.TypeObject,
+	  Properties: map[string]*genai.Schema{
+		"namespace": {
+		  Type:        genai.TypeString,
+		  Description: "The Kubernetes namespace of the service.",
 		},
-	}
+		"serviceName": {
+		  Type:        genai.TypeString,
+		  Description: "The name of the service.",
+		},
+	  },
+	  Required: []string{"namespace", "serviceName"},
+	},
+  }
 
-	// Add the function declaration to a Tool.
-	tools := []*genai.Tool{
-		{FunctionDeclarations: []*genai.FunctionDeclaration{getKubeServiceStatusDecl}},
-	}
+  // Add the function declaration to a Tool.
+  tools := []*genai.Tool{
+	{FunctionDeclarations: []*genai.FunctionDeclaration{getKubeServiceStatusDecl}},
+  }
 
-	// 2. Send the initial prompt and the available tools to the model.
-	fmt.Println("You: What's the status of the 'api-gateway' service in the 'production' namespace?")
-	prompt := "What's the status of the 'api-gateway' service in the 'production' namespace?"
-	resp, err := client.Models.GenerateContent(ctx, model, genai.Text(prompt), &genai.GenerateContentConfig{Tools: tools})
-	if err != nil {
-		log.Fatalf("Initial generation failed: %v", err)
-	}
+  // 2. Send the initial prompt and the available tools to the model.
+  fmt.Println("You: What's the status of the 'api-gateway' service in the 'production' namespace?")
+  prompt := "What's the status of the 'api-gateway' service in the 'production' namespace?"
+  resp, err := client.Models.GenerateContent(ctx, model, genai.Text(prompt), &genai.GenerateContentConfig{Tools: tools})
+  if err != nil {
+	log.Fatalf("Initial generation failed: %v", err)
+  }
 
-	// 3. Check if the model returned a function call.
-	if len(resp.FunctionCalls()) == 0 {
-		log.Fatalf("Expected a function call, but got none. Response: %s", resp.Text())
-	}
+  // 3. Check if the model returned a function call.
+  if len(resp.FunctionCalls()) == 0 {
+	log.Fatalf("Expected a function call, but got none. Response: %s", resp.Text())
+  }
 
-	fc := resp.FunctionCalls()[0]
-	fmt.Printf("Model wants to call function: %s with args: %v\n", fc.Name, fc.Args)
+  fc := resp.FunctionCalls()[0]
+  fmt.Printf("Model wants to call function: %s with args: %v\n", fc.Name, fc.Args)
 
-	if fc.Name != "getKubeServiceStatus" {
-		log.Fatalf("Unexpected function call: %s", fc.Name)
-	}
+  if fc.Name != "getKubeServiceStatus" {
+	log.Fatalf("Unexpected function call: %s", fc.Name)
+  }
 
-	// 4. Execute the function with the arguments provided by the model.
-	namespace, ok1 := fc.Args["namespace"].(string)
-	serviceName, ok2 := fc.Args["serviceName"].(string)
-	if !ok1 || !ok2 {
-		log.Fatalf("Could not parse function call arguments: %v", fc.Args)
-	}
+  // 4. Execute the function with the arguments provided by the model.
+  namespace, ok1 := fc.Args["namespace"].(string)
+  serviceName, ok2 := fc.Args["serviceName"].(string)
+  if !ok1 || !ok2 {
+	log.Fatalf("Could not parse function call arguments: %v", fc.Args)
+  }
 
-	status, err := getKubeServiceStatus(namespace, serviceName)
-	if err != nil {
-		log.Fatalf("Function execution failed: %v", err)
-	}
+  status, err := getKubeServiceStatus(namespace, serviceName)
+  if err != nil {
+	log.Fatalf("Function execution failed: %v", err)
+  }
 
-	// 5. Send the function's result back to the model.
-	fmt.Printf("[Sending function response to model: %s]\n", status)
-	var functionResponse map[string]any
-	if err := json.Unmarshal([]byte(status), &functionResponse); err != nil {
-		log.Fatalf("Failed to unmarshal function response: %v", err)
-	}
+  // 5. Send the function's result back to the model.
+  fmt.Printf("[Sending function response to model: %s]\n", status)
+  var functionResponse map[string]any
+  if err := json.Unmarshal([]byte(status), &functionResponse); err != nil {
+	log.Fatalf("Failed to unmarshal function response: %v", err)
+  }
 
-	// Construct the conversation history, including the model's initial function call request
-	// and our function response.
-	conversationHistory := []*genai.Content{
-		{Parts: []*genai.Part{genai.NewPartFromText(prompt)}, Role: "user"},
-		{Parts: []*genai.Part{genai.NewPartFromFunctionCall(fc.Name, fc.Args)}, Role: "model"},
-		{Parts: []*genai.Part{genai.NewPartFromFunctionResponse(fc.Name, functionResponse)}, Role: "user"},
-	}
+  // Construct the conversation history, including the model's initial function call request
+  // and our function response.
+  conversationHistory := []*genai.Content{
+	{Parts: []*genai.Part{genai.NewPartFromText(prompt)}, Role: "user"},
+	{Parts: []*genai.Part{genai.NewPartFromFunctionCall(fc.Name, fc.Args)}, Role: "model"},
+	{Parts: []*genai.Part{genai.NewPartFromFunctionResponse(fc.Name, functionResponse)}, Role: "user"},
+  }
 
-	finalResp, err := client.Models.GenerateContent(ctx, model, conversationHistory, &genai.GenerateContentConfig{Tools: tools})
-	if err != nil {
-		log.Fatalf("Final generation failed: %v", err)
-	}
+  finalResp, err := client.Models.GenerateContent(ctx, model, conversationHistory, &genai.GenerateContentConfig{Tools: tools})
+  if err != nil {
+	log.Fatalf("Final generation failed: %v", err)
+  }
 
-	// 6. The model now generates a natural language response based on the function's output.
-	fmt.Println("\nModel's Final Answer:")
-	fmt.Println(finalResp.Text())
+  // 6. The model now generates a natural language response based on the function's output.
+  fmt.Println("\nModel's Final Answer:")
+  fmt.Println(finalResp.Text())
 }
 ```
 

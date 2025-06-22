@@ -41,19 +41,19 @@ Let's consider an example:
 
 ```go
 type S3Uploader struct {
-    Bucket string
+  Bucket string
 }
 
 // Upload method with a value receiver
 func (s S3Uploader) Upload(data []byte) error {
-    // ... implementation ...
-    return nil
+  // ... implementation ...
+  return nil
 }
 
 // Delete method with a pointer receiver
 func (s *S3Uploader) Delete(key string) error {
-    // ... implementation ...
-    return nil
+  // ... implementation ...
+  return nil
 }
 ```
 
@@ -65,12 +65,12 @@ Now, if we have an interface:
 
 ```go
 type Uploader interface {
-    Upload(data []byte) error
+  Upload(data []byte) error
 }
 
 type FullAccessUploader interface {
-    Upload(data []byte) error
-    Delete(key string) error
+  Upload(data []byte) error
+  Delete(key string) error
 }
 ```
 
@@ -124,34 +124,34 @@ import "fmt"
 // Notifier defines the behavior for sending notifications.
 // Any type that implements this interface can be used by our CI/CD pipeline.
 type Notifier interface {
-    Notify(message string) error
+  Notify(message string) error
 }
 
 // BuildStep represents a single step in our CI process.
 type BuildStep struct {
-    Name      string
-    notifier  Notifier // The step uses the interface, not a concrete type.
+  Name      string
+  notifier  Notifier // The step uses the interface, not a concrete type.
 }
 
 // NewBuildStep creates a new build step with a given notifier.
 func NewBuildStep(name string, n Notifier) *BuildStep {
-    return &BuildStep{
-        Name:      name,
-        notifier:  n,
-    }
+  return &BuildStep{
+    Name:      name,
+    notifier:  n,
+  }
 }
 
 // Run simulates executing the build step and sends a notification.
 func (bs *BuildStep) Run() {
-    fmt.Printf("Running step: %s\n", bs.Name)
-    // ... core logic of the build step ...
-    fmt.Println("Step completed successfully.")
+  fmt.Printf("Running step: %s\n", bs.Name)
+  // ... core logic of the build step ...
+  fmt.Println("Step completed successfully.")
 
-    // Notify on success.
-    err := bs.notifier.Notify(fmt.Sprintf("Build step '%s' completed successfully.", bs.Name))
-    if err != nil {
-        fmt.Printf("Failed to send notification: %v\n", err)
-    }
+  // Notify on success.
+  err := bs.notifier.Notify(fmt.Sprintf("Build step '%s' completed successfully.", bs.Name))
+  if err != nil {
+    fmt.Printf("Failed to send notification: %v\n", err)
+  }
 }
 ```
 
@@ -167,19 +167,19 @@ import "fmt"
 
 // SlackNotifier sends notifications to a Slack channel.
 type SlackNotifier struct {
-    Channel   string
-    APIToken  string
+  Channel   string
+  APIToken  string
 }
 
 // Notify implements the Notifier interface for Slack.
 // Notice there's no "implements Notifier" keyword.
 func (s *SlackNotifier) Notify(message string) error {
-    if s.APIToken == "" {
-        return fmt.Errorf("Slack API token is not set")
-    }
-    fmt.Printf("Sending Slack message to channel %s: %s\n", s.Channel, message)
-    // In a real application, this would make an HTTP request to the Slack API.
-    return nil
+  if s.APIToken == "" {
+    return fmt.Errorf("Slack API token is not set")
+  }
+  fmt.Printf("Sending Slack message to channel %s: %s\n", s.Channel, message)
+  // In a real application, this would make an HTTP request to the Slack API.
+  return nil
 }
 ```
 
@@ -191,17 +191,17 @@ import "fmt"
 
 // PagerDutyNotifier sends incidents to PagerDuty.
 type PagerDutyNotifier struct {
-    IntegrationKey string
+  IntegrationKey string
 }
 
 // Notify implements the Notifier interface for PagerDuty.
 func (pd *PagerDutyNotifier) Notify(message string) error {
-    if pd.IntegrationKey == "" {
-        return fmt.Errorf("PagerDuty integration key is not set")
-    }
-    fmt.Printf("Creating PagerDuty incident: %s\n", message)
-    // In a real application, this would make an HTTP request to the PagerDuty API.
-    return nil
+  if pd.IntegrationKey == "" {
+    return fmt.Errorf("PagerDuty integration key is not set")
+  }
+  fmt.Printf("Creating PagerDuty incident: %s\n", message)
+  // In a real application, this would make an HTTP request to the PagerDuty API.
+  return nil
 }
 ```
 
@@ -214,31 +214,31 @@ Finally, our `main` package will wire everything up.
 package main
 
 import (
-    "example.com/notifications"
-    "example.com/pipeline"
+  "example.com/notifications"
+  "example.com/pipeline"
 )
 
 func main() {
-    // Create instances of our concrete notifiers.
-    slack := &notifications.SlackNotifier{
-        Channel:  "#builds",
-        APIToken: "xoxb-some-real-token",
-    }
+  // Create instances of our concrete notifiers.
+  slack := &notifications.SlackNotifier{
+    Channel:  "#builds",
+    APIToken: "xoxb-some-real-token",
+  }
 
-    pagerDuty := &notifications.PagerDutyNotifier{
-        IntegrationKey: "some-real-integration-key",
-    }
+  pagerDuty := &notifications.PagerDutyNotifier{
+    IntegrationKey: "some-real-integration-key",
+  }
 
-    // Create build steps, injecting the desired notifier.
-    // The BuildStep only knows about the Notifier interface.
-    buildAndTest := pipeline.NewBuildStep("Build & Test", slack)
-    deployToStaging := pipeline.NewBuildStep("Deploy to Staging", slack)
-    deployToProd := pipeline.NewBuildStep("Deploy to Production", pagerDuty)
+  // Create build steps, injecting the desired notifier.
+  // The BuildStep only knows about the Notifier interface.
+  buildAndTest := pipeline.NewBuildStep("Build & Test", slack)
+  deployToStaging := pipeline.NewBuildStep("Deploy to Staging", slack)
+  deployToProd := pipeline.NewBuildStep("Deploy to Production", pagerDuty)
 
-    // Run the pipeline steps.
-    buildAndTest.Run()
-    deployToStaging.Run()
-    deployToProd.Run()
+  // Run the pipeline steps.
+  buildAndTest.Run()
+  deployToStaging.Run()
+  deployToProd.Run()
 }
 ```
 
@@ -257,7 +257,7 @@ func main() {
     ```
 
 2.  **Go Modules Initialization**:
-    From the root of `go-interfaces-example/`, you would run:
+From the root of `go-interfaces-example/`, you would run:
     ```bash
     # This creates the go.mod file. No external dependencies are needed yet.
     go mod init example.com
@@ -292,14 +292,14 @@ func main() {
     ```go
     // pipeline/notifier_test.go
     type MockNotifier struct {
-        Called  bool
-        Message string
+      Called  bool
+      Message string
     }
 
     func (m *MockNotifier) Notify(message string) error {
-        m.Called = true
-        m.Message = message
-        return nil
+      m.Called = true
+      m.Message = message
+      return nil
     }
 
     // In your test function:
@@ -332,44 +332,44 @@ import "fmt"
 
 // CustomError is a custom error type.
 type CustomError struct {
-    Msg string
+  Msg string
 }
 
 func (e *CustomError) Error() string {
-    if e == nil {
-        return "nil error" // Should not happen if constructed properly
-    }
-    return e.Msg
+  if e == nil {
+    return "nil error" // Should not happen if constructed properly
+  }
+  return e.Msg
 }
 
 // Fails conditionally and returns a CustomError.
 func doSomething() *CustomError {
-    // Simulate a failure condition
-    var e *CustomError // e is a nil pointer of type *CustomError
-    return e
+  // Simulate a failure condition
+  var e *CustomError // e is a nil pointer of type *CustomError
+  return e
 }
 
 func main() {
-    var err error // err is an interface value, initially nil
-    err = doSomething() // err is now a non-nil interface containing a nil *CustomError
+  var err error // err is an interface value, initially nil
+  err = doSomething() // err is now a non-nil interface containing a nil *CustomError
 
-    // This check is the trap!
-    // err is not nil because it has a type (*CustomError), even though its value is nil.
-    if err != nil {
-        fmt.Printf("Error occurred: %v\n", err) // This line will be executed.
-        // If you tried to access a field of the concrete type here, it would panic.
-        // For example: fmt.Println(err.(*CustomError).Msg) would panic.
-    } else {
-        fmt.Println("No error.")
-    }
+  // This check is the trap!
+  // err is not nil because it has a type (*CustomError), even though its value is nil.
+  if err != nil {
+    fmt.Printf("Error occurred: %v\n", err) // This line will be executed.
+    // If you tried to access a field of the concrete type here, it would panic.
+    // For example: fmt.Println(err.(*CustomError).Msg) would panic.
+  } else {
+    fmt.Println("No error.")
+  }
 
-    // To be safe, you need a more robust check.
-    // The correct way to check is to also consider the value inside the interface.
-    if err != nil && err.(*CustomError) != nil {
-        fmt.Println("This is a real error.")
-    } else {
-        fmt.Println("Caught the nil pointer inside the interface!")
-    }
+  // To be safe, you need a more robust check.
+  // The correct way to check is to also consider the value inside the interface.
+  if err != nil && err.(*CustomError) != nil {
+    fmt.Println("This is a real error.")
+  } else {
+    fmt.Println("Caught the nil pointer inside the interface!")
+  }
 }
 ```
 
@@ -384,35 +384,35 @@ package main
 import "fmt"
 
 type CustomError struct {
-    Msg string
+  Msg string
 }
 
 func (e *CustomError) Error() string {
-    return e.Msg
+  return e.Msg
 }
 
 // The function signature should return the 'error' interface type.
 func doSomethingSafely() error {
-    // Simulate a condition where no error occurs.
-    var e *CustomError // e is a nil pointer of type *CustomError
+  // Simulate a condition where no error occurs.
+  var e *CustomError // e is a nil pointer of type *CustomError
 
-    // If e is nil, we should return a nil of type 'error', not the typed nil.
-    if e == nil {
-        return nil
-    }
+  // If e is nil, we should return a nil of type 'error', not the typed nil.
+  if e == nil {
+    return nil
+  }
 
-    return e // This is only returned if e is a valid, non-nil *CustomError
+  return e // This is only returned if e is a valid, non-nil *CustomError
 }
 
 func main() {
-    err := doSomethingSafely()
+  err := doSomethingSafely()
 
-    if err != nil {
-        fmt.Printf("Error occurred: %v\n", err)
-    } else {
-        // This is now correctly executed.
-        fmt.Println("No error.")
-    }
+  if err != nil {
+    fmt.Printf("Error occurred: %v\n", err)
+  } else {
+    // This is now correctly executed.
+    fmt.Println("No error.")
+  }
 }
 ```
 
@@ -432,14 +432,14 @@ import "fmt"
 
 // Problem: A "God" interface for managing cloud resources.
 type CloudManager interface {
-    CreateVM(name string) error
-    DeleteVM(id string) error
-    CreateBucket(name string) error
-    DeleteBucket(name string) error
-    UploadToBucket(bucket, key string, data []byte) error
-    DownloadFromBucket(bucket, key string) ([]byte, error)
-    CreateLoadBalancer(name string) error
-    DeleteLoadBalancer(id string) error
+  CreateVM(name string) error
+  DeleteVM(id string) error
+  CreateBucket(name string) error
+  DeleteBucket(name string) error
+  UploadToBucket(bucket, key string, data []byte) error
+  DownloadFromBucket(bucket, key string) ([]byte, error)
+  CreateLoadBalancer(name string) error
+  DeleteLoadBalancer(id string) error
 }
 
 // AWSManager has to implement everything, even if a specific task only needs one method.
@@ -457,14 +457,14 @@ func (a *AWSManager) DeleteLoadBalancer(id string) error   { /*...*/ return nil 
 
 // This function only needs to upload data, but it requires the giant CloudManager interface.
 func backupData(manager CloudManager, data []byte) {
-    fmt.Println("Backing up data...")
-    manager.CreateBucket("backups")
-    manager.UploadToBucket("backups", "backup.dat", data)
+  fmt.Println("Backing up data...")
+  manager.CreateBucket("backups")
+  manager.UploadToBucket("backups", "backup.dat", data)
 }
 
 func main() {
-    aws := &AWSManager{}
-    backupData(aws, []byte("my important data"))
+  aws := &AWSManager{}
+  backupData(aws, []byte("my important data"))
 }
 ```
 
@@ -482,14 +482,14 @@ import "fmt"
 
 // Uploader defines only what's needed for uploading.
 type Uploader interface {
-    CreateBucket(name string) error
-    UploadToBucket(bucket, key string, data []byte) error
+  CreateBucket(name string) error
+  UploadToBucket(bucket, key string, data []byte) error
 }
 
 // VMManager defines only VM-related actions.
 type VMManager interface {
-    CreateVM(name string) error
-    DeleteVM(id string) error
+  CreateVM(name string) error
+  DeleteVM(id string) error
 }
 
 // GeneralAWSManager implements all behaviors, but they are logically separated.
@@ -498,26 +498,26 @@ type GeneralAWSManager struct{}
 func (a *GeneralAWSManager) CreateVM(name string) error { /*...*/ return nil }
 func (a *GeneralAWSManager) DeleteVM(id string) error   { /*...*/ return nil }
 func (a *GeneralAWSManager) CreateBucket(name string) error {
-	fmt.Printf("Creating bucket: %s\n", name)
-	return nil
+  fmt.Printf("Creating bucket: %s\n", name)
+  return nil
 }
 func (a *GeneralAWSManager) UploadToBucket(b, k string, d []byte) error {
-	fmt.Printf("Uploading %s to %s\n", k, b)
-	return nil
+  fmt.Printf("Uploading %s to %s\n", k, b)
+  return nil
 }
 
 // This function now depends on the much smaller 'Uploader' interface.
 // It's clearer what its responsibilities are.
 func backupData(uploader Uploader, data []byte) {
-    fmt.Println("Backing up data...")
-    uploader.CreateBucket("backups")
-    uploader.UploadToBucket("backups", "backup.dat", data)
+  fmt.Println("Backing up data...")
+  uploader.CreateBucket("backups")
+  uploader.UploadToBucket("backups", "backup.dat", data)
 }
 
 func main() {
-    // Our GeneralAWSManager still satisfies the Uploader interface implicitly.
-    aws := &GeneralAWSManager{}
-    backupData(aws, []byte("my important data"))
+  // Our GeneralAWSManager still satisfies the Uploader interface implicitly.
+  aws := &GeneralAWSManager{}
+  backupData(aws, []byte("my important data"))
 }
 ```
 
@@ -534,47 +534,47 @@ A method modifies the internal state of a struct, and if called concurrently fro
 package main
 
 import (
-	"fmt"
-	"sync"
+  "fmt"
+  "sync"
 )
 
 // MetricsCollector defines an interface for collecting metrics.
 type MetricsCollector interface {
-    RecordRequest()
-    GetCount() int
+  RecordRequest()
+  GetCount() int
 }
 
 // SimpleCounter is a non-thread-safe implementation.
 type SimpleCounter struct {
-    count int
+  count int
 }
 
 func (c *SimpleCounter) RecordRequest() {
-    c.count++ // RACE CONDITION HAPPENS HERE
+  c.count++ // RACE CONDITION HAPPENS HERE
 }
 
 func (c *SimpleCounter) GetCount() int {
-    return c.count
+  return c.count
 }
 
 func main() {
-    var collector MetricsCollector = &SimpleCounter{}
-    var wg sync.WaitGroup
+  var collector MetricsCollector = &SimpleCounter{}
+  var wg sync.WaitGroup
 
-    // Simulate 1000 concurrent requests.
-    for i := 0; i < 1000; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            collector.RecordRequest()
-        }()
-    }
+  // Simulate 1000 concurrent requests.
+  for i := 0; i < 1000; i++ {
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      collector.RecordRequest()
+    }()
+  }
 
-    wg.Wait()
+  wg.Wait()
 
-    // The final count will likely NOT be 1000 due to the race condition.
-    // Run this with `go run -race .` to detect the data race.
-    fmt.Printf("Total requests recorded: %d\n", collector.GetCount())
+  // The final count will likely NOT be 1000 due to the race condition.
+  // Run this with `go run -race .` to detect the data race.
+  fmt.Printf("Total requests recorded: %d\n", collector.GetCount())
 }
 
 ```
@@ -588,51 +588,51 @@ Protect the shared state within your concrete type using mutexes or other concur
 package main
 
 import (
-	"fmt"
-	"sync"
+  "fmt"
+  "sync"
 )
 
 // MetricsCollector interface remains the same.
 type MetricsCollector interface {
-    RecordRequest()
-    GetCount() int
+  RecordRequest()
+  GetCount() int
 }
 
 // ConcurrentCounter is a thread-safe implementation.
 type ConcurrentCounter struct {
-    mu    sync.Mutex // A mutex to protect the count field.
-    count int
+  mu    sync.Mutex // A mutex to protect the count field.
+  count int
 }
 
 func (c *ConcurrentCounter) RecordRequest() {
-    c.mu.Lock()         // Lock before modifying state.
-    defer c.mu.Unlock() // Unlock when the function returns.
-    c.count++
+  c.mu.Lock()         // Lock before modifying state.
+  defer c.mu.Unlock() // Unlock when the function returns.
+  c.count++
 }
 
 func (c *ConcurrentCounter) GetCount() int {
-    c.mu.Lock()         // Lock before reading state.
-    defer c.mu.Unlock() // Unlock when the function returns.
-    return c.count
+  c.mu.Lock()         // Lock before reading state.
+  defer c.mu.Unlock() // Unlock when the function returns.
+  return c.count
 }
 
 func main() {
-    // The consumer of the interface doesn't need to change.
-    var collector MetricsCollector = &ConcurrentCounter{}
-    var wg sync.WaitGroup
+  // The consumer of the interface doesn't need to change.
+  var collector MetricsCollector = &ConcurrentCounter{}
+  var wg sync.WaitGroup
 
-    for i := 0; i < 1000; i++ {
-        wg.Add(1)
-        go func() {
-            defer wg.Done()
-            collector.RecordRequest()
-        }()
-    }
+  for i := 0; i < 1000; i++ {
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      collector.RecordRequest()
+    }()
+  }
 
-    wg.Wait()
+  wg.Wait()
 
-    // This will now correctly and safely print 1000.
-    fmt.Printf("Total requests recorded: %d\n", collector.GetCount())
+  // This will now correctly and safely print 1000.
+  fmt.Printf("Total requests recorded: %d\n", collector.GetCount())
 }
 
 ```

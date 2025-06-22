@@ -36,7 +36,7 @@ A **type parameter** is a placeholder for a type that will be specified later by
 
 ```go
 func PrintSlice[T any](s []T) {
-    // ...
+  // ...
 }
 ```
 
@@ -48,12 +48,12 @@ While `any` is useful, most generic functions need to perform operations on the 
 // This function works with any type that can be compared using == or !=.
 // This includes booleans, numbers, strings, pointers, channels, and structs/arrays whose fields are comparable.
 func FindInSlice[T comparable](s []T, target T) int {
-    for i, v := range s {
-        if v == target {
-            return i
-        }
+  for i, v := range s {
+    if v == target {
+      return i
     }
-    return -1
+  }
+  return -1
 }
 ```
 
@@ -64,17 +64,17 @@ An interface used as a constraint can specify a set of required methods. More po
 ```go
 // A constraint that permits any type that is either an integer or a floating-point number.
 type Number interface {
-    ~int | ~int8 | ~int16 | ~int32 | ~int64 |
-    ~float32 | ~float64
+  ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+  ~float32 | ~float64
 }
 
 // This generic function can now sum slices of any type that satisfies the Number constraint.
 func SumNumbers[T Number](numbers []T) T {
-    var total T
-    for _, num := range numbers {
-        total += num // This is safe because the constraint guarantees T supports the '+' operator.
-    }
-    return total
+  var total T
+  for _, num := range numbers {
+    total += num // This is safe because the constraint guarantees T supports the '+' operator.
+  }
+  return total
 }
 ```
 
@@ -84,7 +84,7 @@ The tilde (`~`) token in the constraint is important. It means the constraint in
 
 Go's approach to implementing generics is fundamentally different from what you might have seen in other languages.
 
-  * **vs. C++ Templates:** C++ uses a "template metaprogramming" approach. The compiler generates a completely separate copy of the function or class for every type it's used with. This is powerful but can lead to slow compile times and large binaries ("code bloat").
+* **vs. C++ Templates:** C++ uses a "template metaprogramming" approach. The compiler generates a completely separate copy of the function or class for every type it's used with. This is powerful but can lead to slow compile times and large binaries ("code bloat").
   * **vs. Java Generics:** Java uses **type erasure**. The compiler checks types at compile time but then erases them, replacing them with `Object` in the bytecode. This means the JVM has no knowledge of the generic types at runtime, which can lead to complex workarounds (like passing `Class` objects around) and limitations.
 
 Go chooses a middle path with **compile-time instantiation**. When the compiler sees a call to a generic function, like `SumNumbers([]int{1, 2, 3})`, it generates a specific version of that function for the `int` type. It does this for each type argument used in your program. However, the compiler is smart about it. For types that have the same underlying memory layout and require the same operations (e.g., all pointer types), it can share a single implementation, reducing binary size.
@@ -98,7 +98,7 @@ This gives you the best of both worlds:
 
 Coming from other ecosystems, here's how Go generics will feel different and why they are a better fit for infrastructure tooling:
 
-  * **vs. Python's Duck Typing:** In Python, you can pass anything to a function, and it will fail at runtime if you try to perform an unsupported operation (e.g., `len()` on an integer). This "duck typing" is flexible but can lead to errors that only appear in production. Go generics provide the flexibility to write functions that work on multiple types but with the safety of compile-time guarantees. Your CI pipeline will catch the error, not your users.
+* **vs. Python's Duck Typing:** In Python, you can pass anything to a function, and it will fail at runtime if you try to perform an unsupported operation (e.g., `len()` on an integer). This "duck typing" is flexible but can lead to errors that only appear in production. Go generics provide the flexibility to write functions that work on multiple types but with the safety of compile-time guarantees. Your CI pipeline will catch the error, not your users.
   * **vs. Shell Scripting (Bash/Zsh):** Shell scripts are the bedrock of many DevOps tasks but are notoriously untyped and error-prone. A script that expects a number might receive a string, leading to silent failures or bizarre behavior. By building your tooling in Go with generics, you can create robust, reusable CLI tools that are far more reliable and easier to test and maintain.
   * **vs. Java/C\#:** While the concept of generics is similar, Go's implementation feels more direct. The use of constraints based on interface unions and underlying types is uniquely Go. You don't have the complexity of wildcards (`? extends T`) or the runtime limitations of erasure. It's a pragmatic, production-focused design.
 
@@ -118,68 +118,68 @@ A common task in DevOps is processing lists of resources—VMs, pods, users, etc
 package main
 
 import (
-	"fmt"
-	"strings"
+  "fmt"
+  "strings"
 )
 
 // A generic Filter function.
 // It takes a slice of any type `T` and a predicate function.
 // The predicate function `keep` takes a value of type T and returns true if it should be kept.
 func Filter[T any](slice []T, keep func(T) bool) []T {
-	var result []T
-	for _, item := range slice {
-		if keep(item) {
-			result = append(result, item)
-		}
-	}
-	// Note: Returning a new slice is idiomatic. Modifying the input slice can have side effects.
-	return result
+  var result []T
+  for _, item := range slice {
+    if keep(item) {
+      result = append(result, item)
+    }
+  }
+  // Note: Returning a new slice is idiomatic. Modifying the input slice can have side effects.
+  return result
 }
 
 // --- Example Usage ---
 
 // Define a simple struct representing a server.
 type Server struct {
-	Name   string
-	Region string
-	IsUp   bool
+  Name   string
+  Region string
+  IsUp   bool
 }
 
 func main() {
-	// --- Use Case 1: Filtering a slice of Servers ---
-	servers := []Server{
-		{Name: "web-01", Region: "us-east-1", IsUp: true},
-		{Name: "db-01", Region: "eu-west-1", IsUp: true},
-		{Name: "web-02", Region: "us-east-1", IsUp: false},
-		{Name: "cache-01", Region: "us-east-1", IsUp: true},
-	}
+  // --- Use Case 1: Filtering a slice of Servers ---
+  servers := []Server{
+    {Name: "web-01", Region: "us-east-1", IsUp: true},
+    {Name: "db-01", Region: "eu-west-1", IsUp: true},
+    {Name: "web-02", Region: "us-east-1", IsUp: false},
+    {Name: "cache-01", Region: "us-east-1", IsUp: true},
+  }
 
-	// We want to find all running servers in the 'us-east-1' region.
-	// The predicate function captures the logic.
-	activeUSEastServers := Filter(servers, func(s Server) bool {
-		return s.IsUp && s.Region == "us-east-1"
-	})
+  // We want to find all running servers in the 'us-east-1' region.
+  // The predicate function captures the logic.
+  activeUSEastServers := Filter(servers, func(s Server) bool {
+    return s.IsUp && s.Region == "us-east-1"
+  })
 
-	fmt.Println("Active servers in us-east-1:")
-	for _, s := range activeUSEastServers {
-		fmt.Printf("- %s\n", s.Name)
-	}
+  fmt.Println("Active servers in us-east-1:")
+  for _, s := range activeUSEastServers {
+    fmt.Printf("- %s\n", s.Name)
+  }
 
-	fmt.Println()
+  fmt.Println()
 
-	// --- Use Case 2: Filtering a slice of strings ---
-	// The exact same Filter function works seamlessly with a different type.
-	hostnames := []string{"app.prod.com", "db.prod.com", "test.dev.com", "metrics.prod.com"}
+  // --- Use Case 2: Filtering a slice of strings ---
+  // The exact same Filter function works seamlessly with a different type.
+  hostnames := []string{"app.prod.com", "db.prod.com", "test.dev.com", "metrics.prod.com"}
 
-	// We want to find all production hostnames.
-	prodHostnames := Filter(hostnames, func(h string) bool {
-		return strings.HasSuffix(h, ".prod.com")
-	})
+  // We want to find all production hostnames.
+  prodHostnames := Filter(hostnames, func(h string) bool {
+    return strings.HasSuffix(h, ".prod.com")
+  })
 
-	fmt.Println("Production hostnames:")
-	for _, h := range prodHostnames {
-		fmt.Printf("- %s\n", h)
-	}
+  fmt.Println("Production hostnames:")
+  for _, h := range prodHostnames {
+    fmt.Printf("- %s\n", h)
+  }
 }
 
 /*
@@ -251,18 +251,18 @@ import "fmt"
 
 // Problem: This function will not compile.
 func Min[T any](a, b T) T {
-	// The compiler error will be:
-	// invalid operation: a < b (operator < not defined on T)
-	if a < b { // <-- COMPILE ERROR
-		return a
-	}
-	return b
+  // The compiler error will be:
+  // invalid operation: a < b (operator < not defined on T)
+  if a < b { // <-- COMPILE ERROR
+    return a
+  }
+  return b
 }
 
 func main() {
-	// We intend to use it like this:
-	fmt.Println(Min(10, 20))
-	fmt.Println(Min("apple", "banana"))
+  // We intend to use it like this:
+  fmt.Println(Min(10, 20))
+  fmt.Println(Min("apple", "banana"))
 }
 ```
 
@@ -281,31 +281,31 @@ import "fmt"
 // This is what the official `constraints.Ordered` looks like.
 // It includes all integer, float, and string types.
 type Ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
-	~float32 | ~float64 |
-	~string
+  ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+  ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+  ~float32 | ~float64 |
+  ~string
 }
 
 // Remediation: Use the specific `Ordered` constraint.
 func Min[T Ordered](a, b T) T {
-	// This is now safe. The compiler guarantees that any type T used here
-	// will support the `<` operator.
-	if a < b {
-		return a
-	}
-	return b
+  // This is now safe. The compiler guarantees that any type T used here
+  // will support the `<` operator.
+  if a < b {
+    return a
+  }
+  return b
 }
 
 func main() {
-	// This now works perfectly.
-	fmt.Println("Min integer:", Min(10, 20))
-	fmt.Println("Min float:", Min(3.14, 1.618))
-	fmt.Println("Min string:", Min("apple", "banana"))
+  // This now works perfectly.
+  fmt.Println("Min integer:", Min(10, 20))
+  fmt.Println("Min float:", Min(3.14, 1.618))
+  fmt.Println("Min string:", Min("apple", "banana"))
 
-	// Example of what would fail at compile time (as it should):
-	// type MyStruct struct{ V int }
-	// Min(MyStruct{V: 1}, MyStruct{V: 2}) // COMPILE ERROR: MyStruct does not satisfy Ordered.
+  // Example of what would fail at compile time (as it should):
+  // type MyStruct struct{ V int }
+  // Min(MyStruct{V: 1}, MyStruct{V: 2}) // COMPILE ERROR: MyStruct does not satisfy Ordered.
 }
 ```
 
@@ -326,26 +326,26 @@ import "fmt"
 
 // Problem: Returning the zero value of T can be ambiguous.
 func GetFirst[T any](s []T) T {
-	if len(s) > 0 {
-		return s[0]
-	}
-	var zero T // This is the zero value (e.g., 0 for int, "" for string, nil for a pointer).
-	return zero
+  if len(s) > 0 {
+    return s[0]
+  }
+  var zero T // This is the zero value (e.g., 0 for int, "" for string, nil for a pointer).
+  return zero
 }
 
 func main() {
-	// Use case 1: Slice of integers.
-	// An empty slice returns 0. But what if 0 was a valid, meaningful value in our slice?
-	// We can't distinguish "not found" from "found the number 0".
-	ints := []int{}
-	firstInt := GetFirst(ints)
-	fmt.Printf("First int: %d. Was it found? Who knows.\n", firstInt)
+  // Use case 1: Slice of integers.
+  // An empty slice returns 0. But what if 0 was a valid, meaningful value in our slice?
+  // We can't distinguish "not found" from "found the number 0".
+  ints := []int{}
+  firstInt := GetFirst(ints)
+  fmt.Printf("First int: %d. Was it found? Who knows.\n", firstInt)
 
-	// Use case 2: Slice of strings.
-	// An empty slice returns "". But "" could be a valid entry.
-	strs := []string{}
-	firstStr := GetFirst(strs)
-	fmt.Printf("First string: '%s'. Was it found? Ambiguous.\n", firstStr)
+  // Use case 2: Slice of strings.
+  // An empty slice returns "". But "" could be a valid entry.
+  strs := []string{}
+  firstStr := GetFirst(strs)
+  fmt.Printf("First string: '%s'. Was it found? Ambiguous.\n", firstStr)
 }
 ```
 
@@ -362,30 +362,30 @@ import "fmt"
 
 // Remediation: Return a (T, bool) tuple to indicate presence.
 func GetFirst[T any](s []T) (T, bool) {
-	if len(s) > 0 {
-		return s[0], true // Return the value and `true` for success.
-	}
-	var zero T
-	return zero, false // Return the zero value and `false` for failure.
+  if len(s) > 0 {
+    return s[0], true // Return the value and `true` for success.
+  }
+  var zero T
+  return zero, false // Return the zero value and `false` for failure.
 }
 
 func main() {
-	// Now the call site is unambiguous.
-	ints := []int{}
-	if firstInt, ok := GetFirst(ints); ok {
-		fmt.Printf("Found first int: %d\n", firstInt)
-	} else {
-		fmt.Println("Integer slice was empty.") // This is now clear.
-	}
+  // Now the call site is unambiguous.
+  ints := []int{}
+  if firstInt, ok := GetFirst(ints); ok {
+    fmt.Printf("Found first int: %d\n", firstInt)
+  } else {
+    fmt.Println("Integer slice was empty.") // This is now clear.
+  }
 
-	// You can even have a slice with the zero value as a valid element.
-	moreInts := []int{0, 1, 2}
-	if firstInt, ok := GetFirst(moreInts); ok {
-		// This block executes correctly, and firstInt is 0.
-		fmt.Printf("Found first int: %d\n", firstInt)
-	} else {
-		fmt.Println("This will not be printed.")
-	}
+  // You can even have a slice with the zero value as a valid element.
+  moreInts := []int{0, 1, 2}
+  if firstInt, ok := GetFirst(moreInts); ok {
+    // This block executes correctly, and firstInt is 0.
+    fmt.Printf("Found first int: %d\n", firstInt)
+  } else {
+    fmt.Println("This will not be printed.")
+  }
 }
 ```
 
@@ -406,30 +406,30 @@ import "fmt"
 
 // This struct is large (e.g., 1MB of data).
 type LargeData struct {
-	ID   string
-	Data [1024 * 128]byte // 128 KB
+  ID   string
+  Data [1024 * 128]byte // 128 KB
 }
 
 // Problem: This function takes LargeData by value.
 // Each call to the 'process' function will copy 128 KB.
 func ProcessItems[T any](items []T, process func(T)) {
-	for _, item := range items {
-		process(item)
-	}
+  for _, item := range items {
+    process(item)
+  }
 }
 
 func main() {
-	dataItems := []LargeData{
-		{ID: "data-1"},
-		{ID: "data-2"},
-		{ID: "data-3"},
-	}
+  dataItems := []LargeData{
+    {ID: "data-1"},
+    {ID: "data-2"},
+    {ID: "data-3"},
+  }
 
-	fmt.Println("Processing by value (inefficient):")
-	// For each of the 3 items, a 128KB copy is made when calling the lambda.
-	ProcessItems(dataItems, func(d LargeData) {
-		fmt.Printf("Processing item %s\n", d.ID)
-	})
+  fmt.Println("Processing by value (inefficient):")
+  // For each of the 3 items, a 128KB copy is made when calling the lambda.
+  ProcessItems(dataItems, func(d LargeData) {
+    fmt.Printf("Processing item %s\n", d.ID)
+  })
 }
 ```
 
@@ -445,32 +445,32 @@ package main
 import "fmt"
 
 type LargeData struct {
-	ID   string
-	Data [1024 * 128]byte
+  ID   string
+  Data [1024 * 128]byte
 }
 
 // Remediation: The function still takes a slice of T, but T is now constrained
 // to be a pointer type.
 func ProcessItemsByPtr[T any](items []*T, process func(*T)) {
-	for _, item := range items {
-		// `item` is now a pointer. No large struct is copied.
-		process(item)
-	}
+  for _, item := range items {
+    // `item` is now a pointer. No large struct is copied.
+    process(item)
+  }
 }
 
 func main() {
-	dataItems := []*LargeData{
-		{ID: "data-1"},
-		{ID: "data-2"},
-		{ID: "data-3"},
-	}
+  dataItems := []*LargeData{
+    {ID: "data-1"},
+    {ID: "data-2"},
+    {ID: "data-3"},
+  }
 
-	fmt.Println("Processing by pointer (efficient):")
-	// Here, we pass a slice of pointers. The function `process` receives a pointer.
-	// Only the pointer (8 bytes on a 64-bit system) is copied, not the 128KB struct.
-	ProcessItemsByPtr(dataItems, func(d *LargeData) {
-		fmt.Printf("Processing item %s\n", d.ID)
-	})
+  fmt.Println("Processing by pointer (efficient):")
+  // Here, we pass a slice of pointers. The function `process` receives a pointer.
+  // Only the pointer (8 bytes on a 64-bit system) is copied, not the 128KB struct.
+  ProcessItemsByPtr(dataItems, func(d *LargeData) {
+    fmt.Printf("Processing item %s\n", d.ID)
+  })
 }
 ```
 
@@ -490,48 +490,48 @@ Here is a naive generic cache that is not safe for concurrent access. Running th
 package main
 
 import (
-	"fmt"
-	"sync"
-	"time"
+  "fmt"
+  "sync"
+  "time"
 )
 
 // Problem: A generic cache that is NOT safe for concurrency.
 type GenericCache[K comparable, V any] struct {
-	items map[K]V
+  items map[K]V
 }
 
 func NewGenericCache[K comparable, V any]() *GenericCache[K, V] {
-	return &GenericCache[K, V]{items: make(map[K]V)}
+  return &GenericCache[K, V]{items: make(map[K]V)}
 }
 
 func (c *GenericCache[K, V]) Set(key K, value V) {
-	c.items[key] = value // RACE: concurrent write
+  c.items[key] = value // RACE: concurrent write
 }
 
 func (c *GenericCache[K, V]) Get(key K) (V, bool) {
-	val, ok := c.items[key] // RACE: concurrent read
-	return val, ok
+  val, ok := c.items[key] // RACE: concurrent read
+  return val, ok
 }
 
 func main() {
-	// To reliably see the race, run: go run -race .
-	cache := NewGenericCache[string, string]()
-	var wg sync.WaitGroup
+  // To reliably see the race, run: go run -race .
+  cache := NewGenericCache[string, string]()
+  var wg sync.WaitGroup
 
-	// Start 10 goroutines writing to the cache simultaneously.
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func(n int) {
-			defer wg.Done()
-			key := fmt.Sprintf("key-%d", n)
-			val := fmt.Sprintf("value-%d", n)
-			cache.Set(key, val)
-			cache.Get(key)
-		}(i)
-	}
+  // Start 10 goroutines writing to the cache simultaneously.
+  for i := 0; i < 10; i++ {
+    wg.Add(1)
+    go func(n int) {
+      defer wg.Done()
+      key := fmt.Sprintf("key-%d", n)
+      val := fmt.Sprintf("value-%d", n)
+      cache.Set(key, val)
+      cache.Get(key)
+    }(i)
+  }
 
-	wg.Wait()
-	fmt.Println("Finished, but a data race occurred.")
+  wg.Wait()
+  fmt.Println("Finished, but a data race occurred.")
 }
 ```
 
@@ -545,62 +545,62 @@ func main() {
 package main
 
 import (
-	"fmt"
-	"sync"
-	"time"
+  "fmt"
+  "sync"
+  "time"
 )
 
 // Remediation: A concurrency-safe generic cache.
 type ConcurrentCache[K comparable, V any] struct {
-	mu    sync.RWMutex // RWMutex allows concurrent reads.
-	items map[K]V
+  mu    sync.RWMutex // RWMutex allows concurrent reads.
+  items map[K]V
 }
 
 func NewConcurrentCache[K comparable, V any]() *ConcurrentCache[K, V] {
-	return &ConcurrentCache[K, V]{items: make(map[K]V)}
+  return &ConcurrentCache[K, V]{items: make(map[K]V)}
 }
 
 // Set locks the mutex for writing. Only one writer at a time.
 func (c *ConcurrentCache[K, V]) Set(key K, value V) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.items[key] = value
+  c.mu.Lock()
+  defer c.mu.Unlock()
+  c.items[key] = value
 }
 
 // Get uses a read-lock, allowing many readers to access the cache
 // simultaneously as long as no one is writing.
 func (c *ConcurrentCache[K, V]) Get(key K) (V, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	val, ok := c.items[key]
-	return val, ok
+  c.mu.RLock()
+  defer c.mu.RUnlock()
+  val, ok := c.items[key]
+  return val, ok
 }
 
 func main() {
-	// Now, run `go run -race .` and it will report no race conditions.
-	cache := NewConcurrentCache[string, int]()
-	var wg sync.WaitGroup
+  // Now, run `go run -race .` and it will report no race conditions.
+  cache := NewConcurrentCache[string, int]()
+  var wg sync.WaitGroup
 
-	// Start multiple writers.
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func(n int) {
-			defer wg.Done()
-			cache.Set(fmt.Sprintf("key-%d", n%10), n)
-		}(i)
-	}
+  // Start multiple writers.
+  for i := 0; i < 100; i++ {
+    wg.Add(1)
+    go func(n int) {
+      defer wg.Done()
+      cache.Set(fmt.Sprintf("key-%d", n%10), n)
+    }(i)
+  }
 
-	// Start multiple readers.
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func(n int) {
-			defer wg.Done()
-			cache.Get(fmt.Sprintf("key-%d", n%10))
-		}(i)
-	}
+  // Start multiple readers.
+  for i := 0; i < 100; i++ {
+    wg.Add(1)
+    go func(n int) {
+      defer wg.Done()
+      cache.Get(fmt.Sprintf("key-%d", n%10))
+    }(i)
+  }
 
-	wg.Wait()
-	fmt.Println("Finished safely with no data race.")
+  wg.Wait()
+  fmt.Println("Finished safely with no data race.")
 }
 ```
 

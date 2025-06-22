@@ -15,7 +15,7 @@ This article presents an elegant, automated solution: a command-line tool that s
 
 To build this powerful workflow accelerator, we will leverage a curated stack of modern technologies:
 
-  * **Go**: Chosen for its performance, strong typing, and excellent support for building concurrent, single-binary command-line applications.[1]
+* **Go**: Chosen for its performance, strong typing, and excellent support for building concurrent, single-binary command-line applications.[1]
   * **Bubble Tea**: A stateful TUI framework for Go, based on The Elm Architecture, that enables the creation of sophisticated and responsive terminal applications.[2, 3]
   * **GitHub & Jira REST APIs**: We will programmatically interact with these platforms to automate the creation of pull requests and issues.[4, 5]
   * **Large Language Models (LLM)**: By integrating with an LLM provider like OpenAI, we will transform raw `git diff` output into well-structured, human-readable documentation for our PRs and tickets.[6, 7]
@@ -28,7 +28,7 @@ A robust command-line tool requires a well-defined architecture. Our Git-to-Jira
 
 The application is composed of four primary components that communicate through a clear, event-driven flow:
 
-  * **The TUI (Bubble Tea `Program`)**: This is the application's central nervous system. Built with the Bubble Tea framework, it is responsible for managing the application's state, rendering the user interface, and handling all user input. Crucially, it orchestrates the entire workflow by dispatching asynchronous tasks (as `tea.Cmd` functions) and reacting to the messages they produce upon completion. To maintain a responsive UI, the TUI's core `Update` loop never performs blocking I/O operations directly.[2, 8]
+* **The TUI (Bubble Tea `Program`)**: This is the application's central nervous system. Built with the Bubble Tea framework, it is responsible for managing the application's state, rendering the user interface, and handling all user input. Crucially, it orchestrates the entire workflow by dispatching asynchronous tasks (as `tea.Cmd` functions) and reacting to the messages they produce upon completion. To maintain a responsive UI, the TUI's core `Update` loop never performs blocking I/O operations directly.[2, 8]
   * **Git Client Wrapper**: A dedicated module that encapsulates all interactions with the local Git repository. Its primary responsibility is to execute `git` commands, such as `git diff`, using Go's `os/exec` package and to parse their output.[9, 10]
   * **API Clients (GitHub, Jira, LLM)**: Three distinct clients, each isolated in its own module. Each client is responsible for the specifics of communicating with its respective external service: handling HTTP requests, managing authentication headers, and serializing/deserializing JSON data. This modularity makes the system easier to test and extend.[6, 11, 12]
 
@@ -79,13 +79,13 @@ To install all these dependencies, run the following `go get` command. We specif
 
 ```bash
 go get [github.com/charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea) \
-       [github.com/charmbracelet/bubbles](https://github.com/charmbracelet/bubbles) \
-       [github.com/charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) \
-       [github.com/google/go-github/v72](https://github.com/google/go-github/v72) \
-       [github.com/andygrunwald/go-jira](https://github.com/andygrunwald/go-jira) \
-       [github.com/openai/openai-go](https://github.com/openai/openai-go) \
-       [github.com/spf13/viper](https://github.com/spf13/viper) \
-       [github.com/joho/godotenv](https://github.com/joho/godotenv)
+[github.com/charmbracelet/bubbles](https://github.com/charmbracelet/bubbles) \
+[github.com/charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) \
+[github.com/google/go-github/v72](https://github.com/google/go-github/v72) \
+[github.com/andygrunwald/go-jira](https://github.com/andygrunwald/go-jira) \
+[github.com/openai/openai-go](https://github.com/openai/openai-go) \
+[github.com/spf13/viper](https://github.com/spf13/viper) \
+[github.com/joho/godotenv](https://github.com/joho/godotenv)
 ````
 
 After running this, `go mod tidy` will finalize the `go.mod` and `go.sum` files.
@@ -131,58 +131,58 @@ Here is a `config.go` file that centralizes all configuration logic:
 package config
 
 import (
-	"fmt"
-	"[github.com/joho/godotenv](https://github.com/joho/godotenv)"
-	"[github.com/spf13/viper](https://github.com/spf13/viper)"
-	"log"
+"fmt"
+"[github.com/joho/godotenv](https://github.com/joho/godotenv)"
+"[github.com/spf13/viper](https://github.com/spf13/viper)"
+"log"
 )
 
 // Config stores all configuration of the application.
 // The values are read by viper from a config file or environment variables.
 type Config struct {
-	GitHubToken   string `mapstructure:"GITHUB_TOKEN"`
-	JiraURL       string `mapstructure:"JIRA_URL"`
-	JiraUser      string `mapstructure:"JIRA_USER"`
-	JiraToken     string `mapstructure:"JIRA_TOKEN"`
-	OpenAIAPIKey  string `mapstructure:"OPENAI_API_KEY"`
-	GitRemote     string `mapstructure:"GIT_REMOTE"`
-	GitBaseBranch string `mapstructure:"GIT_BASE_BRANCH"`
-	JiraProjectKey string `mapstructure:"JIRA_PROJECT_KEY"`
-	JiraIssueType string `mapstructure:"JIRA_ISSUE_TYPE"`
-	LLMModel      string `mapstructure:"LLM_MODEL"`
+GitHubToken   string `mapstructure:"GITHUB_TOKEN"`
+JiraURL       string `mapstructure:"JIRA_URL"`
+JiraUser      string `mapstructure:"JIRA_USER"`
+JiraToken     string `mapstructure:"JIRA_TOKEN"`
+OpenAIAPIKey  string `mapstructure:"OPENAI_API_KEY"`
+GitRemote     string `mapstructure:"GIT_REMOTE"`
+GitBaseBranch string `mapstructure:"GIT_BASE_BRANCH"`
+JiraProjectKey string `mapstructure:"JIRA_PROJECT_KEY"`
+JiraIssueType string `mapstructure:"JIRA_ISSUE_TYPE"`
+LLMModel      string `mapstructure:"LLM_MODEL"`
 }
 
 // LoadConfig reads configuration from file and environment variables.
 func LoadConfig() (config Config, err error) {
-	// Load.env file for local development. In production, env vars are set directly.
-	if err := godotenv.Load(); err!= nil {
-		log.Println("No.env file found, reading from environment")
-	}
+// Load.env file for local development. In production, env vars are set directly.
+if err := godotenv.Load(); err!= nil {
+log.Println("No.env file found, reading from environment")
+}
 
-	// Set default values
-	viper.SetDefault("GIT_REMOTE", "origin")
-	viper.SetDefault("GIT_BASE_BRANCH", "main")
-	viper.SetDefault("JIRA_ISSUE_TYPE", "Task")
-	viper.SetDefault("LLM_MODEL", "gpt-4o")
+// Set default values
+viper.SetDefault("GIT_REMOTE", "origin")
+viper.SetDefault("GIT_BASE_BRANCH", "main")
+viper.SetDefault("JIRA_ISSUE_TYPE", "Task")
+viper.SetDefault("LLM_MODEL", "gpt-4o")
 
-	// Tell viper to look for a config file named `config` in the current directory
-	viper.AddConfigPath(".")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
+// Tell viper to look for a config file named `config` in the current directory
+viper.AddConfigPath(".")
+viper.SetConfigName("config")
+viper.SetConfigType("yaml")
 
-	// Attempt to read the config file, ignoring errors if it's not found
-	if err := viper.ReadInConfig(); err!= nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError);!ok {
-			return Config{}, fmt.Errorf("error reading config file: %w", err)
-		}
-	}
+// Attempt to read the config file, ignoring errors if it's not found
+if err := viper.ReadInConfig(); err!= nil {
+if _, ok := err.(viper.ConfigFileNotFoundError);!ok {
+return Config{}, fmt.Errorf("error reading config file: %w", err)
+}
+}
 
-	// Enable viper to read environment variables
-	viper.AutomaticEnv()
+// Enable viper to read environment variables
+viper.AutomaticEnv()
 
-	// Unmarshal the configuration into our struct
-	err = viper.Unmarshal(&config)
-	return
+// Unmarshal the configuration into our struct
+err = viper.Unmarshal(&config)
+return
 }
 ```
 
@@ -192,7 +192,7 @@ The foundational input for our AI content generation is the `git diff`. We need 
 
 A critical detail when working with the `diff` command (and by extension, `git diff`) is its use of exit codes. A successful execution of `diff` does not always return an exit code of `0`. The exit codes are specifically defined [9]:
 
-  * **Exit Code 0**: No differences were found.
+* **Exit Code 0**: No differences were found.
   * **Exit Code 1**: Differences were found.
   * **Exit Code \> 1**: An error occurred during execution.
 
@@ -206,46 +206,46 @@ The following function, `getGitDiff`, demonstrates this robust implementation. I
 package git
 
 import (
-	"fmt"
-	"os/exec"
-	"syscall"
+"fmt"
+"os/exec"
+"syscall"
 )
 
 // getGitDiff executes `git diff` to get the changes between the current branch
 // and the specified remote base branch. It correctly handles the exit codes
 // from the diff command.
 func getGitDiff(remoteName, baseBranch string) (string, error) {
-	// The '...' syntax in git diff is important. It shows the diff between
-	// the tip of the current branch and the common ancestor with 'remote/base'.
-	target := fmt.Sprintf("%s/%s...", remoteName, baseBranch)
-	cmd := exec.Command("git", "diff", target)
+// The '...' syntax in git diff is important. It shows the diff between
+// the tip of the current branch and the common ancestor with 'remote/base'.
+target := fmt.Sprintf("%s/%s...", remoteName, baseBranch)
+cmd := exec.Command("git", "diff", target)
 
-	// We use CombinedOutput to capture both stdout and stderr. This is useful
-	// for logging the full error message if git fails for reasons other than
-	// finding a diff.
-	output, err := cmd.CombinedOutput()
+// We use CombinedOutput to capture both stdout and stderr. This is useful
+// for logging the full error message if git fails for reasons other than
+// finding a diff.
+output, err := cmd.CombinedOutput()
 
-	if err!= nil {
-		// Check if the error is an ExitError
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			// The command exit with a non-zero status.
-			// This is expected for `git diff` which returns 1 for differences.
-			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				// Exit status 1 means differences were found. This is a success case for us.
-				if status.ExitStatus() == 1 {
-					return string(output), nil
-				}
-				// Any other exit status is a genuine error.
-				return "", fmt.Errorf("git diff exited with status %d: %s", status.ExitStatus(), string(output))
-			}
-		}
-		// This was not an ExitError, but some other error (e.g., command not found).
-		return "", fmt.Errorf("failed to execute git diff: %w, output: %s", err, string(output))
-	}
+if err!= nil {
+// Check if the error is an ExitError
+if exitErr, ok := err.(*exec.ExitError); ok {
+// The command exit with a non-zero status.
+// This is expected for `git diff` which returns 1 for differences.
+if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+// Exit status 1 means differences were found. This is a success case for us.
+if status.ExitStatus() == 1 {
+return string(output), nil
+}
+// Any other exit status is a genuine error.
+return "", fmt.Errorf("git diff exited with status %d: %s", status.ExitStatus(), string(output))
+}
+}
+// This was not an ExitError, but some other error (e.g., command not found).
+return "", fmt.Errorf("failed to execute git diff: %w, output: %s", err, string(output))
+}
 
-	// If err is nil, it means exit code was 0, so no differences were found.
-	// We return an empty string and no error.
-	return string(output), nil
+// If err is nil, it means exit code was 0, so no differences were found.
+// We return an empty string and no error.
+return string(output), nil
 }
 ```
 
@@ -280,29 +280,29 @@ The function below, `generateContent`, encapsulates this entire process.
 package llm
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"[github.com/openai/openai-go](https://github.com/openai/openai-go)"
+"context"
+"encoding/json"
+"fmt"
+"[github.com/openai/openai-go](https://github.com/openai/openai-go)"
 )
 
 // ContentResponse defines the structure for the JSON response from the LLM.
 type ContentResponse struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+Title       string `json:"title"`
+Description string `json:"description"`
 }
 
 // generateContent sends the git diff to the OpenAI API and asks for a PR title
 // and description in a structured JSON format.
 func generateContent(diff string, apiKey string, model string) (string, string, error) {
-	if apiKey == "" {
-		return "", "", fmt.Errorf("OpenAI API key is not configured")
-	}
+if apiKey == "" {
+return "", "", fmt.Errorf("OpenAI API key is not configured")
+}
 
-	client := openai.NewClient(openai.WithKey(apiKey))
-	ctx := context.Background()
+client := openai.NewClient(openai.WithKey(apiKey))
+ctx := context.Background()
 
-	prompt := fmt.Sprintf(`
+prompt := fmt.Sprintf(`
 Based on the following git diff, please generate a concise pull request title and a structured, detailed description. The description should be in Markdown format and include a summary of changes and a "How to Test" section.
 
 Return your response as a single JSON object with two keys: "title" and "description".
@@ -311,33 +311,33 @@ Return your response as a single JSON object with two keys: "title" and "descrip
 %s
 `, diff)
 
-	messages :=openai.ChatCompletionMessageParamUnion{
-		openai.UserMessage(prompt),
-	}
+messages :=openai.ChatCompletionMessageParamUnion{
+openai.UserMessage(prompt),
+}
 
-	params := openai.ChatCompletionNewParams{
-		Model:    model,
-		Messages: messages,
-	}
+params := openai.ChatCompletionNewParams{
+Model:    model,
+Messages: messages,
+}
 
-	resp, err := client.Chat.Completions.New(ctx, params)
-	if err!= nil {
-		return "", "", fmt.Errorf("chat completion request failed: %w", err)
-	}
+resp, err := client.Chat.Completions.New(ctx, params)
+if err!= nil {
+return "", "", fmt.Errorf("chat completion request failed: %w", err)
+}
 
-	if len(resp.Choices) == 0 |
+if len(resp.Choices) == 0 |
 | resp.Choices.Message.Content == "" {
-		return "", "", fmt.Errorf("received an empty response from OpenAI API")
-	}
+return "", "", fmt.Errorf("received an empty response from OpenAI API")
+}
 
-	var contentResp ContentResponse
-	err = json.Unmarshal(byte(resp.Choices.Message.Content), &contentResp)
-	if err!= nil {
-		// Fallback if JSON parsing fails
-		return "AI-Generated Content", resp.Choices.Message.Content, nil
-	}
+var contentResp ContentResponse
+err = json.Unmarshal(byte(resp.Choices.Message.Content), &contentResp)
+if err!= nil {
+// Fallback if JSON parsing fails
+return "AI-Generated Content", resp.Choices.Message.Content, nil
+}
 
-	return contentResp.Title, contentResp.Description, nil
+return contentResp.Title, contentResp.Description, nil
 }
 ```
 
@@ -349,7 +349,7 @@ The heart of our interactive tool is the Text-based User Interface (TUI), built 
 
 A Bubble Tea program is structured around three key methods defined on a `Model` [3]:
 
-  * **`Model`**: A struct that holds the entire state of the application. It is the single source of truth.
+* **`Model`**: A struct that holds the entire state of the application. It is the single source of truth.
   * **`Init`**: A function that is called once when the program starts. It returns an initial `tea.Cmd` to perform any startup I/O.
   * **`Update`**: The state transition function. It is called whenever an event (`tea.Msg`) occurs (like a keypress or a response from an API call). It processes the message, updates the model, and can return another `tea.Cmd` to trigger subsequent actions.
   * **`View`**: A function that takes the current `Model` and returns a `string` representing the UI to be rendered on the screen.
@@ -362,34 +362,34 @@ Our `Model` struct must be comprehensive enough to track every piece of informat
 package main
 
 import (
-	"[github.com/charmbracelet/bubbles/spinner](https://github.com/charmbracelet/bubbles/spinner)"
-	tea "[github.com/charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)"
+"[github.com/charmbracelet/bubbles/spinner](https://github.com/charmbracelet/bubbles/spinner)"
+tea "[github.com/charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)"
 )
 
 // state represents the current step in our workflow.
 type state int
 
 const (
-	stateFetchingDiff state = iota
-	stateGeneratingContent
-	stateReadyForApproval
-	stateCreatingPR
-	stateCreatingJiraTicket
-	stateDone
-	stateError
+stateFetchingDiff state = iota
+stateGeneratingContent
+stateReadyForApproval
+stateCreatingPR
+stateCreatingJiraTicket
+stateDone
+stateError
 )
 
 // Model holds the application's complete state.
 type Model struct {
-	state         state
-	spinner       spinner.Model
-	err           error
-	gitDiff       string
-	prTitle       string
-	prDescription string
-	prURL         string
-	jiraURL       string
-	// Add other fields like config here
+state         state
+spinner       spinner.Model
+err           error
+gitDiff       string
+prTitle       string
+prDescription string
+prURL         string
+jiraURL       string
+// Add other fields like config here
 }
 ```
 
@@ -400,27 +400,27 @@ The `Update` function is the engine of our application. It acts as a state machi
 ```go
 // A skeleton of the Update function demonstrating the state machine structure.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-    switch msg := msg.(type) {
-    case tea.KeyMsg:
-        // Handle global key presses like 'q' or 'ctrl+c' to quit.
-        // Also handle context-specific keys based on m.state.
-        switch msg.String() {
-        case "q", "ctrl+c":
-            return m, tea.Quit
-        }
-    
-    // Custom messages from our commands
-    case diffFetchedMsg:
-        // Logic for when the git diff is ready
-    case contentGeneratedMsg:
-        // Logic for when the LLM content is ready
-    //... other custom message types
-    }
+switch msg := msg.(type) {
+case tea.KeyMsg:
+// Handle global key presses like 'q' or 'ctrl+c' to quit.
+// Also handle context-specific keys based on m.state.
+switch msg.String() {
+case "q", "ctrl+c":
+return m, tea.Quit
+}
 
-    // Handle spinner animation
-    var cmd tea.Cmd
-    m.spinner, cmd = m.spinner.Update(msg)
-    return m, cmd
+// Custom messages from our commands
+case diffFetchedMsg:
+// Logic for when the git diff is ready
+case contentGeneratedMsg:
+// Logic for when the LLM content is ready
+//... other custom message types
+}
+
+// Handle spinner animation
+var cmd tea.Cmd
+m.spinner, cmd = m.spinner.Update(msg)
+return m, cmd
 }
 ```
 
@@ -451,34 +451,34 @@ We will use the `go-github` library to create a pull request. Authentication is 
 package github
 
 import (
-	"context"
-	"fmt"
-	"[github.com/google/go-github/v72/github](https://github.com/google/go-github/v72/github)"
-	"golang.org/x/oauth2"
+  "context"
+  "fmt"
+  "[github.com/google/go-github/v72/github](https://github.com/google/go-github/v72/github)"
+  "golang.org/x/oauth2"
 )
 
 // createPullRequest creates a new pull request on GitHub.
 func createPullRequest(token, owner, repo, title, description, headBranch, baseBranch string) (string, error) {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+  ctx := context.Background()
+  ts := oauth2.StaticTokenSource(
+    &oauth2.Token{AccessToken: token},
+    )
+  tc := oauth2.NewClient(ctx, ts)
+  client := github.NewClient(tc)
 
-	newPR := &github.NewPullRequest{
-		Title: github.String(title),
-		Body:  github.String(description),
-		Head:  github.String(headBranch),
-		Base:  github.String(baseBranch),
-	}
+  newPR := &github.NewPullRequest{
+    Title: github.String(title),
+    Body:  github.String(description),
+    Head:  github.String(headBranch),
+    Base:  github.String(baseBranch),
+  }
 
-	pr, _, err := client.PullRequests.Create(ctx, owner, repo, newPR)
-	if err!= nil {
-		return "", fmt.Errorf("failed to create pull request: %w", err)
-	}
+  pr, _, err := client.PullRequests.Create(ctx, owner, repo, newPR)
+  if err!= nil {
+    return "", fmt.Errorf("failed to create pull request: %w", err)
+  }
 
-	return pr.GetHTMLURL(), nil
+  return pr.GetHTMLURL(), nil
 }
 ```
 
@@ -490,45 +490,45 @@ For Jira integration, we use the `go-jira` library. Authentication for Jira Clou
 package jira
 
 import (
-	"fmt"
-	"[github.com/andygrunwald/go-jira](https://github.com/andygrunwald/go-jira)"
+  "fmt"
+  "[github.com/andygrunwald/go-jira](https://github.com/andygrunwald/go-jira)"
 )
 
 // createJiraTicket creates a new issue in a Jira project.
 func createJiraTicket(jiraURL, user, token, title, description, projectKey, issueType string) (string, error) {
-	tp := jira.BasicAuthTransport{
-		Username: user,
-		Password: token,
-	}
+  tp := jira.BasicAuthTransport{
+    Username: user,
+    Password: token,
+  }
 
-	client, err := jira.NewClient(tp.Client(), jiraURL)
-	if err!= nil {
-		return "", fmt.Errorf("failed to create Jira client: %w", err)
-	}
+  client, err := jira.NewClient(tp.Client(), jiraURL)
+  if err!= nil {
+    return "", fmt.Errorf("failed to create Jira client: %w", err)
+  }
 
-	issueFields := &jira.IssueFields{
-		Project: jira.Project{
-			Key: projectKey,
-		},
-		Summary:     title,
-		Description: description,
-		Type: jira.IssueType{
-			Name: issueType,
-		},
-	}
+  issueFields := &jira.IssueFields{
+    Project: jira.Project{
+      Key: projectKey,
+    },
+    Summary:     title,
+    Description: description,
+    Type: jira.IssueType{
+      Name: issueType,
+    },
+  }
 
-	issue := jira.Issue{
-		Fields: issueFields,
-	}
+  issue := jira.Issue{
+    Fields: issueFields,
+  }
 
-	newIssue, _, err := client.Issue.Create(&issue)
-	if err!= nil {
-		return "", fmt.Errorf("failed to create Jira ticket: %w", err)
-	}
+  newIssue, _, err := client.Issue.Create(&issue)
+  if err!= nil {
+    return "", fmt.Errorf("failed to create Jira ticket: %w", err)
+  }
 
-	// The URL to the newly created issue
-	ticketURL := fmt.Sprintf("%s/browse/%s", jiraURL, newIssue.Key)
-	return ticketURL, nil
+  // The URL to the newly created issue
+  ticketURL := fmt.Sprintf("%s/browse/%s", jiraURL, newIssue.Key)
+  return ticketURL, nil
 }
 ```
 
@@ -541,90 +541,90 @@ With all the building blocks in place—Git interaction, LLM content generation,
 // It shows how messages from commands drive the state machine.
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	// Handle key presses from the user
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		case "y", "enter":
-			// If we are in the approval state, 'y' or 'enter' triggers the next step.
-			if m.state == stateReadyForApproval {
-				m.state = stateCreatingPR
-				m.statusMessage = "Creating pull request..."
-				// Return a command to create the pull request.
-				return m, createPRCmd(m.config, m.prTitle, m.prDescription)
-			}
-		}
+  switch msg := msg.(type) {
+  // Handle key presses from the user
+  case tea.KeyMsg:
+    switch msg.String() {
+    case "q", "ctrl+c":
+      return m, tea.Quit
+    case "y", "enter":
+      // If we are in the approval state, 'y' or 'enter' triggers the next step.
+      if m.state == stateReadyForApproval {
+	m.state = stateCreatingPR
+	m.statusMessage = "Creating pull request..."
+	// Return a command to create the pull request.
+	return m, createPRCmd(m.config, m.prTitle, m.prDescription)
+      }
+    }
 
-	// Handle the completion of the `getGitDiff` command
-	case diffFetchedMsg:
-		if msg.err!= nil {
-			m.err = msg.err
-			m.state = stateError
-			return m, tea.Quit
-		}
-		if msg.diff == "" {
-			m.statusMessage = "No git diff found. Nothing to do."
-			m.state = stateDone
-			return m, tea.Quit
-		}
-		m.gitDiff = msg.diff
-		m.state = stateGeneratingContent
-		m.statusMessage = "Generating title and description with AI..."
-		// Now, return a command to generate content with the LLM.
-		return m, generateContentCmd(m.config, m.gitDiff)
+  // Handle the completion of the `getGitDiff` command
+  case diffFetchedMsg:
+    if msg.err!= nil {
+      m.err = msg.err
+      m.state = stateError
+      return m, tea.Quit
+    }
+    if msg.diff == "" {
+      m.statusMessage = "No git diff found. Nothing to do."
+      m.state = stateDone
+      return m, tea.Quit
+    }
+    m.gitDiff = msg.diff
+    m.state = stateGeneratingContent
+    m.statusMessage = "Generating title and description with AI..."
+    // Now, return a command to generate content with the LLM.
+    return m, generateContentCmd(m.config, m.gitDiff)
 
-	// Handle the completion of the LLM content generation
-	case contentGeneratedMsg:
-		if msg.err!= nil {
-			m.err = msg.err
-			m.state = stateError
-			return m, tea.Quit
-		}
-		m.prTitle = msg.title
-		m.prDescription = msg.description
-		m.state = stateReadyForApproval
-		// No command is returned here; we wait for user input.
-		return m, nil
+  // Handle the completion of the LLM content generation
+  case contentGeneratedMsg:
+    if msg.err!= nil {
+      m.err = msg.err
+      m.state = stateError
+      return m, tea.Quit
+    }
+    m.prTitle = msg.title
+    m.prDescription = msg.description
+    m.state = stateReadyForApproval
+    // No command is returned here; we wait for user input.
+    return m, nil
 
-	// Handle the completion of the pull request creation
-	case prCreatedMsg:
-		if msg.err!= nil {
-			m.err = msg.err
-			m.state = stateError
-			return m, tea.Quit
-		}
-		m.prURL = msg.url
-		m.state = stateCreatingJiraTicket
-		m.statusMessage = "Pull request created! Creating Jira ticket..."
-		// Immediately return a command to create the Jira ticket.
-		return m, createJiraTicketCmd(m.config, m.prTitle, m.prDescription)
+  // Handle the completion of the pull request creation
+  case prCreatedMsg:
+    if msg.err!= nil {
+      m.err = msg.err
+      m.state = stateError
+      return m, tea.Quit
+    }
+    m.prURL = msg.url
+    m.state = stateCreatingJiraTicket
+    m.statusMessage = "Pull request created! Creating Jira ticket..."
+    // Immediately return a command to create the Jira ticket.
+    return m, createJiraTicketCmd(m.config, m.prTitle, m.prDescription)
 
-	// Handle the completion of the Jira ticket creation
-	case jiraTicketCreatedMsg:
-		if msg.err!= nil {
-			m.err = msg.err
-			m.state = stateError
-			return m, tea.Quit
-		}
-		m.jiraURL = msg.url
-		m.state = stateDone
-		m.statusMessage = "All done!"
-		// The workflow is complete, so we quit.
-		return m, tea.Quit
+  // Handle the completion of the Jira ticket creation
+  case jiraTicketCreatedMsg:
+    if msg.err!= nil {
+      m.err = msg.err
+      m.state = stateError
+      return m, tea.Quit
+    }
+    m.jiraURL = msg.url
+    m.state = stateDone
+    m.statusMessage = "All done!"
+    // The workflow is complete, so we quit.
+    return m, tea.Quit
 
-	// Handle any generic error message from our commands
-	case errorMsg:
-		m.err = msg.err
-		m.state = stateError
-		return m, tea.Quit
-	}
+  // Handle any generic error message from our commands
+  case errorMsg:
+    m.err = msg.err
+    m.state = stateError
+    return m, tea.Quit
+  }
 
-	// Update the spinner animation on every tick
-	var cmd tea.Cmd
-	m.spinner, cmd = m.spinner.Update(msg)
-	return m, cmd
+  // Update the spinner animation on every tick
+  var cmd tea.Cmd
+  m.spinner, cmd = m.spinner.Update(msg)
+  return m, cmd
 }
 ```
 
@@ -636,14 +636,14 @@ By following this guide, a developer can construct a sophisticated and genuinely
 
 The key achievements and architectural principles demonstrated include:
 
-  * **Asynchronous Orchestration**: Leveraging Bubble Tea's command-message pattern to build a responsive, non-blocking TUI that orchestrates multiple long-running I/O operations.
+* **Asynchronous Orchestration**: Leveraging Bubble Tea's command-message pattern to build a responsive, non-blocking TUI that orchestrates multiple long-running I/O operations.
   * **Secure and Flexible Configuration**: Implementing a professional, layered configuration system with Viper and GoDotEnv that decouples the application from its environment and handles secrets securely.
   * **Modular and Testable Design**: Encapsulating discrete functionalities—Git interaction, API clients, and TUI logic—into separate modules, leading to cleaner and more maintainable code.
   * **AI-Powered Automation**: Utilizing an LLM not just as a novelty, but as a practical tool to automate the creative and often tedious task of writing high-quality documentation.
 
 This project serves as a strong foundation that can be extended with even more powerful features. Potential future enhancements include:
 
-  * **Interactive Content Editing**: Incorporate a `textarea` component from the `bubbles` library to allow the user to review and edit the AI-generated title and description directly within the TUI before submission.[15]
+* **Interactive Content Editing**: Incorporate a `textarea` component from the `bubbles` library to allow the user to review and edit the AI-generated title and description directly within the TUI before submission.[15]
   * **First-Run Configuration Wizard**: Build a separate Bubble Tea model that runs on the tool's first execution, guiding the user through setting up their API keys, default project, and other preferences.
   * **Multi-Platform Support**: Extend the tool's capabilities by implementing new API clients for other services like GitLab, Bitbucket, or alternative project management platforms such as Linear or Asana.
   * **Git Hook Integration**: For an even more seamless experience, the tool could be integrated as a `pre-push` git hook, automatically launching the PR and ticket creation process whenever new commits are pushed to a remote repository.

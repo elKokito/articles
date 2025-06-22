@@ -57,229 +57,229 @@ Now, here is the complete `main.go`:
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"strings"
+  "fmt"
+  "io/ioutil"
+  "os"
+  "os/exec"
+  "strings"
 
-	"github.com/charmbracelet/bubbles/textarea"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+  "github.com/charmbracelet/bubbles/textarea"
+  "github.com/charmbracelet/bubbles/viewport"
+  tea "github.com/charmbracelet/bubbletea"
+  "github.com/charmbracelet/lipgloss"
 )
 
 // --- Model ---
 
 type model struct {
-	textarea   textarea.Model
-	viewport   viewport.Model
-	isEditing  bool
-	err        error
+  textarea   textarea.Model
+  viewport   viewport.Model
+  isEditing  bool
+  err        error
 }
 
 const (
-	// The editor to use. You can make this configurable.
-	editor = "nvim"
+  // The editor to use. You can make this configurable.
+  editor = "nvim"
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().Background(lipgloss.Color("62")).Foreground(lipgloss.Color("230")).Padding(0, 1)
-	helpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+  titleStyle = lipgloss.NewStyle().Background(lipgloss.Color("62")).Foreground(lipgloss.Color("230")).Padding(0, 1)
+  helpStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
 )
 
 // Define a custom message to signal that the editor has finished.
 type editorFinishedMsg struct {
-	err  error
-	file string // The temporary file path
+  err  error
+  file string // The temporary file path
 }
 
 func initialModel() model {
-	ta := textarea.New()
-	ta.Placeholder = "This is a mock Jira description. Press 'e' to edit it in Neovim."
-	ta.SetValue(`## Project Phoenix
+  ta := textarea.New()
+  ta.Placeholder = "This is a mock Jira description. Press 'e' to edit it in Neovim."
+  ta.SetValue(`## Project Phoenix
 
-### Overview
-This project aims to refactor the legacy billing system.
+	### Overview
+	This project aims to refactor the legacy billing system.
 
-### Key Deliverables
-- [ ] Migrate database to Postgres
-- [ ] Implement new REST API endpoints
-- [ ] Deprecate the old SOAP service`)
-	ta.Focus()
+	### Key Deliverables
+	- [ ] Migrate database to Postgres
+	- [ ] Implement new REST API endpoints
+	- [ ] Deprecate the old SOAP service`)
+  ta.Focus()
 
-	// The textarea is our "write" model, but for the main view,
-	// we'll use a viewport to display the content, as it gives
-	// us more control over the presentation.
-	vp := viewport.New(100, 15) // Width and height will be updated on window size messages
-	vp.SetContent(ta.View())
+  // The textarea is our "write" model, but for the main view,
+  // we'll use a viewport to display the content, as it gives
+  // us more control over the presentation.
+  vp := viewport.New(100, 15) // Width and height will be updated on window size messages
+  vp.SetContent(ta.View())
 
-	return model{
-		textarea:  ta,
-		viewport:  vp,
-		isEditing: false,
-		err:       nil,
-	}
+  return model{
+	textarea:  ta,
+	viewport:  vp,
+	isEditing: false,
+	err:       nil,
+  }
 }
 
 // --- Bubble Tea Methods ---
 
 func (m model) Init() tea.Cmd {
-	return textarea.Blink
+  return textarea.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-	var cmd tea.Cmd
+  var cmds []tea.Cmd
+  var cmd tea.Cmd
 
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return m, tea.Quit
-		case tea.KeyRunes:
-			// If we're not editing, check for the 'e' key to start editing.
-			if !m.isEditing && string(msg.Runes) == "e" {
-				m.isEditing = true
-				// This is where we trigger the external editor.
-				// We return a command that will execute the editor.
-				return m, openEditor(m.textarea.Value())
-			}
-		}
-
-	case tea.WindowSizeMsg:
-		// Update the viewport size on window resize.
-		m.viewport.Width = msg.Width
-		m.viewport.Height = msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(m.footerView())
-		// Also update the textarea view since it's used to set the viewport content.
-		m.textarea.SetWidth(msg.Width)
-		m.viewport.SetContent(m.textarea.View())
-
-	// This is the custom message we defined. It's sent when the editor exits.
-	case editorFinishedMsg:
-		m.isEditing = false
-		if msg.err != nil {
-			m.err = msg.err
-			return m, tea.Quit
-		}
-		// Read the content from the temporary file.
-		content, err := ioutil.ReadFile(msg.file)
-		if err != nil {
-			m.err = err
-			return m, tea.Quit
-		}
-		// Update the textarea with the new content.
-		m.textarea.SetValue(string(content))
-		m.viewport.SetContent(m.textarea.View())
-
-	case error:
-		m.err = msg
-		return m, nil
+  switch msg := msg.(type) {
+  case tea.KeyMsg:
+	switch msg.Type {
+	case tea.KeyCtrlC, tea.KeyEsc:
+	  return m, tea.Quit
+	case tea.KeyRunes:
+	  // If we're not editing, check for the 'e' key to start editing.
+	  if !m.isEditing && string(msg.Runes) == "e" {
+		m.isEditing = true
+		// This is where we trigger the external editor.
+		// We return a command that will execute the editor.
+		return m, openEditor(m.textarea.Value())
+	  }
 	}
 
-	// Pass messages to the viewport and textarea.
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
-	m.textarea, cmd = m.textarea.Update(msg)
-	cmds = append(cmds, cmd)
+  case tea.WindowSizeMsg:
+	// Update the viewport size on window resize.
+	m.viewport.Width = msg.Width
+	m.viewport.Height = msg.Height - lipgloss.Height(m.headerView()) - lipgloss.Height(m.footerView())
+	// Also update the textarea view since it's used to set the viewport content.
+	m.textarea.SetWidth(msg.Width)
+	m.viewport.SetContent(m.textarea.View())
 
-	return m, tea.Batch(cmds...)
+  // This is the custom message we defined. It's sent when the editor exits.
+  case editorFinishedMsg:
+	m.isEditing = false
+	if msg.err != nil {
+	  m.err = msg.err
+	  return m, tea.Quit
+	}
+	// Read the content from the temporary file.
+	content, err := ioutil.ReadFile(msg.file)
+	if err != nil {
+	  m.err = err
+	  return m, tea.Quit
+	}
+	// Update the textarea with the new content.
+	m.textarea.SetValue(string(content))
+	m.viewport.SetContent(m.textarea.View())
+
+  case error:
+	m.err = msg
+	return m, nil
+  }
+
+  // Pass messages to the viewport and textarea.
+  m.viewport, cmd = m.viewport.Update(msg)
+  cmds = append(cmds, cmd)
+  m.textarea, cmd = m.textarea.Update(msg)
+  cmds = append(cmds, cmd)
+
+  return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
-	if m.err != nil {
-		return fmt.Sprintf("An error occurred: %v", m.err)
-	}
+  if m.err != nil {
+	return fmt.Sprintf("An error occurred: %v", m.err)
+  }
 
-	// If we are in the middle of an edit, show a waiting message.
-	if m.isEditing {
-		return "Editing content in Neovim... (save and quit to return)"
-	}
+  // If we are in the middle of an edit, show a waiting message.
+  if m.isEditing {
+	return "Editing content in Neovim... (save and quit to return)"
+  }
 
-	return fmt.Sprintf(
-		"%s\n%s\n%s",
-		m.headerView(),
-		m.viewport.View(),
-		m.footerView(),
+  return fmt.Sprintf(
+	"%s\n%s\n%s",
+	m.headerView(),
+	m.viewport.View(),
+	m.footerView(),
 	)
 }
 
 func (m model) headerView() string {
-	return titleStyle.Render("Jira Description Editor")
+  return titleStyle.Render("Jira Description Editor")
 }
 
 func (m model) footerView() string {
-	return helpStyle.Render(strings.Repeat(" ", 2) + "↑/↓: navigate | e: edit | ctrl+c: quit")
+  return helpStyle.Render(strings.Repeat(" ", 2) + "↑/↓: navigate | e: edit | ctrl+c: quit")
 }
 
 // --- External Editor Logic ---
 
 // openEditor is a tea.Cmd that launches the editor.
 func openEditor(content string) tea.Cmd {
-	return func() tea.Msg {
-		// Create a temporary file to store the content.
-		// The "*" in the pattern means a random string will be added.
-		tmpfile, err := ioutil.TempFile("", "*.md")
-		if err != nil {
-			return editorFinishedMsg{err: fmt.Errorf("could not create temp file: %w", err)}
-		}
-		defer os.Remove(tmpfile.Name()) // Clean up the file afterwards.
-
-		// Write the current content to the temp file.
-		_, err = tmpfile.Write([]byte(content))
-		if err != nil {
-			return editorFinishedMsg{err: fmt.Errorf("could not write to temp file: %w", err)}
-		}
-		if err := tmpfile.Close(); err != nil {
-			return editorFinishedMsg{err: fmt.Errorf("could not close temp file: %w", err)}
-		}
-
-		// --- The Core of the "Flip" ---
-		cmd := exec.Command(editor, tmpfile.Name())
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		// This will block until the editor is closed.
-		if err = cmd.Run(); err != nil {
-			return editorFinishedMsg{err: fmt.Errorf("error running editor: %w", err)}
-		}
-
-		// When the editor exits, send a message back to the Bubble Tea
-		// update loop with the path to the modified file.
-		return editorFinishedMsg{file: tmpfile.Name()}
+  return func() tea.Msg {
+	// Create a temporary file to store the content.
+	// The "*" in the pattern means a random string will be added.
+	tmpfile, err := ioutil.TempFile("", "*.md")
+	if err != nil {
+	  return editorFinishedMsg{err: fmt.Errorf("could not create temp file: %w", err)}
 	}
+	defer os.Remove(tmpfile.Name()) // Clean up the file afterwards.
+
+	// Write the current content to the temp file.
+	_, err = tmpfile.Write([]byte(content))
+	if err != nil {
+	  return editorFinishedMsg{err: fmt.Errorf("could not write to temp file: %w", err)}
+	}
+	if err := tmpfile.Close(); err != nil {
+	  return editorFinishedMsg{err: fmt.Errorf("could not close temp file: %w", err)}
+	}
+
+	// --- The Core of the "Flip" ---
+	cmd := exec.Command(editor, tmpfile.Name())
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// This will block until the editor is closed.
+	if err = cmd.Run(); err != nil {
+	  return editorFinishedMsg{err: fmt.Errorf("error running editor: %w", err)}
+	}
+
+	// When the editor exits, send a message back to the Bubble Tea
+	// update loop with the path to the modified file.
+	return editorFinishedMsg{file: tmpfile.Name()}
+  }
 }
 
 // --- Main Function ---
 
 func main() {
-	p := tea.NewProgram(
-		initialModel(),
-		tea.WithAltScreen(),       // Use the alternative screen buffer
-		tea.WithMouseCellMotion(), // Enable mouse events
+  p := tea.NewProgram(
+	initialModel(),
+	tea.WithAltScreen(),       // Use the alternative screen buffer
+	tea.WithMouseCellMotion(), // Enable mouse events
 	)
 
-	if err := p.Start(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
+  if err := p.Start(); err != nil {
+	fmt.Printf("Alas, there's been an error: %v", err)
+	os.Exit(1)
+  }
 }
 ```
 
 ### Dissecting the Key Logic
 
 1.  **The `openEditor` Command (`tea.Cmd`)**:
-    This is not just a function; it returns a `tea.Cmd`. In Bubble Tea, commands are functions that perform I/O (like network requests or, in this case, file system access and process execution) and return a `tea.Msg` when they are done. This is how Bubble Tea keeps the `Update` loop from blocking.
+This is not just a function; it returns a `tea.Cmd`. In Bubble Tea, commands are functions that perform I/O (like network requests or, in this case, file system access and process execution) and return a `tea.Msg` when they are done. This is how Bubble Tea keeps the `Update` loop from blocking.
 
 2.  **The Temporary File**:
-    The `ioutil.TempFile` function is the perfect tool for this job. It safely creates a unique file that we can write our initial content to. We then pass this file's name to Neovim. Crucially, we `defer os.Remove()` to ensure the file gets cleaned up even if errors occur.
+The `ioutil.TempFile` function is the perfect tool for this job. It safely creates a unique file that we can write our initial content to. We then pass this file's name to Neovim. Crucially, we `defer os.Remove()` to ensure the file gets cleaned up even if errors occur.
 
 3.  **The `editorFinishedMsg`**:
-    This custom message is the bridge back to our application. When `openEditor` finishes its work, it doesn't modify the model directly. Instead, it sends an `editorFinishedMsg` containing the path of the edited file. The `Update` function has a `case` to handle this specific message, at which point it safely reads the file and updates the model's state. This respects the event-driven architecture and avoids race conditions.
+This custom message is the bridge back to our application. When `openEditor` finishes its work, it doesn't modify the model directly. Instead, it sends an `editorFinishedMsg` containing the path of the edited file. The `Update` function has a `case` to handle this specific message, at which point it safely reads the file and updates the model's state. This respects the event-driven architecture and avoids race conditions.
 
 4.  **`tea.WithAltScreen()`**:
-    In the `main` function, we initialize our program with this option. It tells Bubble Tea to use the terminal's alternative screen buffer, which is a common practice for TUI applications. It ensures that when your app exits, the user's original terminal screen and scrollback history are restored, leaving no trace. This enhances the seamless feel of the integration.
+In the `main` function, we initialize our program with this option. It tells Bubble Tea to use the terminal's alternative screen buffer, which is a common practice for TUI applications. It ensures that when your app exits, the user's original terminal screen and scrollback history are restored, leaving no trace. This enhances the seamless feel of the integration.
 
 ### Conclusion
 

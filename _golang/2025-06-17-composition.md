@@ -34,18 +34,18 @@ In Go, you embed a struct by declaring a field with the type name only, without 
 
 ```go
 type Engine struct {
-    Horsepower int
-    FuelType   string
+  Horsepower int
+  FuelType   string
 }
 
 func (e *Engine) Start() {
-    fmt.Println("Engine started.")
+  fmt.Println("Engine started.")
 }
 
 type Car struct {
-    Engine // Embedded struct - no field name
-    Make   string
-    Model  string
+  Engine // Embedded struct - no field name
+  Make   string
+  Model  string
 }
 ```
 
@@ -53,9 +53,9 @@ Here, the `Car` struct embeds the `Engine` struct. Because `Engine` was declared
 
 ```go
 myCar := Car{
-    Engine: Engine{Horsepower: 300, FuelType: "Gasoline"},
-    Make:   "Ford",
-    Model:  "Mustang",
+  Engine: Engine{Horsepower: 300, FuelType: "Gasoline"},
+  Make:   "Ford",
+  Model:  "Mustang",
 }
 
 fmt.Println(myCar.Horsepower) // Direct access to embedded field
@@ -98,146 +98,146 @@ This example uses only the standard library, so no `go mod` additions are necess
 package main
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-	"sync"
-	"time"
+  "fmt"
+  "log"
+  "net/http"
+  "sync"
+  "time"
 )
 
 // BaseWorker handles the generic lifecycle of a background process.
 // It uses a mutex to protect its state, making it safe for concurrent access.
 type BaseWorker struct {
-	mu         sync.Mutex
-	status     string
-	stopChan   chan struct{}
-	wg         sync.WaitGroup
+  mu         sync.Mutex
+  status     string
+  stopChan   chan struct{}
+  wg         sync.WaitGroup
 }
 
 // NewBaseWorker creates and initializes a BaseWorker.
 func NewBaseWorker() *BaseWorker {
-	return &BaseWorker{
-		status:   "stopped",
-		stopChan: make(chan struct{}),
-	}
+  return &BaseWorker{
+    status:   "stopped",
+    stopChan: make(chan struct{}),
+  }
 }
 
 // Start sets the worker's status to "running". It's a placeholder
 // for more complex start-up logic. The embedding type should
 // override this if it needs more specific behavior.
 func (w *BaseWorker) Start() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	if w.status == "running" {
-		log.Println("Worker is already running.")
-		return
-	}
-	log.Println("BaseWorker starting...")
-	w.status = "running"
-	w.stopChan = make(chan struct{}) // Re-create stop channel for re-use
+  w.mu.Lock()
+  defer w.mu.Unlock()
+  if w.status == "running" {
+    log.Println("Worker is already running.")
+    return
+  }
+  log.Println("BaseWorker starting...")
+  w.status = "running"
+  w.stopChan = make(chan struct{}) // Re-create stop channel for re-use
 }
 
 // Stop signals the worker to terminate and waits for it to finish.
 func (w *BaseWorker) Stop() {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	if w.status == "stopped" {
-		log.Println("Worker is already stopped.")
-		return
-	}
-	log.Println("BaseWorker stopping...")
-	close(w.stopChan) // Signal goroutines to stop
-	w.status = "stopped"
+  w.mu.Lock()
+  defer w.mu.Unlock()
+  if w.status == "stopped" {
+    log.Println("Worker is already stopped.")
+    return
+  }
+  log.Println("BaseWorker stopping...")
+  close(w.stopChan) // Signal goroutines to stop
+  w.status = "stopped"
 }
 
 // Wait blocks until the worker's main loop has exited.
 func (w *BaseWorker) Wait() {
-	w.wg.Wait()
-	log.Println("Worker has finished.")
+  w.wg.Wait()
+  log.Println("Worker has finished.")
 }
 
 // Status returns the current status of the worker.
 func (w *BaseWorker) Status() string {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return w.status
+  w.mu.Lock()
+  defer w.mu.Unlock()
+  return w.status
 }
 
 // URLPoller embeds BaseWorker to gain its lifecycle management
 // and adds specific functionality for polling a URL.
 type URLPoller struct {
-	*BaseWorker // Embedding a pointer is common to share state
-	URL         string
-	Interval    time.Duration
+  *BaseWorker // Embedding a pointer is common to share state
+  URL         string
+  Interval    time.Duration
 }
 
 // NewURLPoller creates a specialized worker for polling URLs.
 func NewURLPoller(url string, interval time.Duration) *URLPoller {
-	return &URLPoller{
-		BaseWorker: NewBaseWorker(), // Initialize the embedded struct
-		URL:        url,
-		Interval:   interval,
-	}
+  return &URLPoller{
+    BaseWorker: NewBaseWorker(), // Initialize the embedded struct
+    URL:        url,
+    Interval:   interval,
+  }
 }
 
 // Start overrides the BaseWorker's Start method.
 // This is method overriding via composition, not inheritance.
 func (p *URLPoller) Start() {
-	// Call the embedded type's method to handle the base logic.
-	p.BaseWorker.Start()
+  // Call the embedded type's method to handle the base logic.
+  p.BaseWorker.Start()
 
-	p.wg.Add(1) // Signal that one goroutine is starting.
-	go p.pollLoop()
+  p.wg.Add(1) // Signal that one goroutine is starting.
+  go p.pollLoop()
 }
 
 // pollLoop is the main work loop for the URLPoller.
 func (p *URLPoller) pollLoop() {
-	defer p.wg.Done() // Signal that this goroutine has finished when it exits.
-	log.Printf("Starting to poll %s every %s", p.URL, p.Interval)
-	ticker := time.NewTicker(p.Interval)
-	defer ticker.Stop()
+  defer p.wg.Done() // Signal that this goroutine has finished when it exits.
+  log.Printf("Starting to poll %s every %s", p.URL, p.Interval)
+  ticker := time.NewTicker(p.Interval)
+  defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			// Perform the health check.
-			resp, err := http.Get(p.URL)
-			if err != nil {
-				log.Printf("ERROR: Failed to poll %s: %v", p.URL, err)
-				continue
-			}
-			log.Printf("Polled %s - Status: %s", p.URL, resp.Status)
-			resp.Body.Close()
-		case <-p.stopChan:
-			// The stop signal was received from the BaseWorker.
-			log.Printf("Stopping poller for %s.", p.URL)
-			return
-		}
-	}
+  for {
+    select {
+    case <-ticker.C:
+      // Perform the health check.
+      resp, err := http.Get(p.URL)
+      if err != nil {
+	log.Printf("ERROR: Failed to poll %s: %v", p.URL, err)
+	continue
+      }
+      log.Printf("Polled %s - Status: %s", p.URL, resp.Status)
+      resp.Body.Close()
+    case <-p.stopChan:
+      // The stop signal was received from the BaseWorker.
+      log.Printf("Stopping poller for %s.", p.URL)
+      return
+    }
+  }
 }
 
 func main() {
-	// --- Main execution ---
-	fmt.Println("### Starting URL Poller Demo ###")
-	poller := NewURLPoller("https://www.google.com", 3*time.Second)
+  // --- Main execution ---
+  fmt.Println("### Starting URL Poller Demo ###")
+  poller := NewURLPoller("https://www.google.com", 3*time.Second)
 
-	// We can call methods from both BaseWorker and URLPoller.
-	fmt.Printf("Initial status: %s\n", poller.Status()) // Promoted method
+  // We can call methods from both BaseWorker and URLPoller.
+  fmt.Printf("Initial status: %s\n", poller.Status()) // Promoted method
 
-	// Start the poller. This calls the URLPoller's overridden Start method.
-	poller.Start()
-	fmt.Printf("Status after start: %s\n", poller.Status())
+  // Start the poller. This calls the URLPoller's overridden Start method.
+  poller.Start()
+  fmt.Printf("Status after start: %s\n", poller.Status())
 
-	// Let it run for a few seconds.
-	time.Sleep(10 * time.Second)
+  // Let it run for a few seconds.
+  time.Sleep(10 * time.Second)
 
-	// Stop the poller. This calls the promoted BaseWorker.Stop method.
-	poller.Stop()
+  // Stop the poller. This calls the promoted BaseWorker.Stop method.
+  poller.Stop()
 
-	// Wait for the polling goroutine to exit gracefully.
-	poller.Wait()
-	fmt.Printf("Final status: %s\n", poller.Status())
-	fmt.Println("### Demo Finished ###")
+  // Wait for the polling goroutine to exit gracefully.
+  poller.Wait()
+  fmt.Printf("Final status: %s\n", poller.Status())
+  fmt.Println("### Demo Finished ###")
 }
 ```
 
@@ -281,32 +281,32 @@ package main
 import "fmt"
 
 type Logger struct {
-    Level string
+  Level string
 }
 
 func (l *Logger) Log(message string) {
-    fmt.Printf("[%s] %s\n", l.Level, message)
+  fmt.Printf("[%s] %s\n", l.Level, message)
 }
 
 type Task struct {
-    Logger     // Embed Logger
-    Name   string
+  Logger     // Embed Logger
+  Name   string
 }
 
 // Task defines its own Log method, which "hides" the one from Logger.
 func (t *Task) Log(message string) {
-    fmt.Printf("Task '%s' is logging: %s\n", t.Name, message)
+  fmt.Printf("Task '%s' is logging: %s\n", t.Name, message)
 }
 
 func main() {
-    task := &Task{
-        Logger: Logger{Level: "INFO"},
-        Name:   "Deploy Application",
-    }
+  task := &Task{
+    Logger: Logger{Level: "INFO"},
+    Name:   "Deploy Application",
+  }
 
-    // This calls Task's Log method, not Logger's.
-    task.Log("Starting deployment.")
-    // Output: Task 'Deploy Application' is logging: Starting deployment.
+  // This calls Task's Log method, not Logger's.
+  task.Log("Starting deployment.")
+  // Output: Task 'Deploy Application' is logging: Starting deployment.
 }
 ```
 
@@ -322,32 +322,32 @@ package main
 import "fmt"
 
 type Logger struct {
-    Level string
+  Level string
 }
 
 func (l *Logger) Log(message string) {
-    fmt.Printf("[%s] %s\n", l.Level, message)
+  fmt.Printf("[%s] %s\n", l.Level, message)
 }
 
 type Task struct {
-    Logger
-    Name string
+  Logger
+  Name string
 }
 
 func (t *Task) Log(message string) {
-    // We can still call the embedded Logger's method explicitly.
-    t.Logger.Log(fmt.Sprintf("Task '%s': %s", t.Name, message))
+  // We can still call the embedded Logger's method explicitly.
+  t.Logger.Log(fmt.Sprintf("Task '%s': %s", t.Name, message))
 }
 
 func main() {
-    task := &Task{
-        Logger: Logger{Level: "INFO"},
-        Name:   "Deploy Application",
-    }
+  task := &Task{
+    Logger: Logger{Level: "INFO"},
+    Name:   "Deploy Application",
+  }
 
-    // This now calls Task's method, which in turn calls Logger's method.
-    task.Log("Starting deployment.")
-    // Output: [INFO] Task 'Deploy Application': Starting deployment.
+  // This now calls Task's method, which in turn calls Logger's method.
+  task.Log("Starting deployment.")
+  // Output: [INFO] Task 'Deploy Application': Starting deployment.
 }
 ```
 
@@ -365,28 +365,28 @@ package main
 import "fmt"
 
 type BaseConfig struct {
-    Version string // The version of the base configuration format.
+  Version string // The version of the base configuration format.
 }
 
 type AppConfig struct {
-    BaseConfig
-    Version string // The version of the application itself. This shadows BaseConfig.Version.
-    AppName string
+  BaseConfig
+  Version string // The version of the application itself. This shadows BaseConfig.Version.
+  AppName string
 }
 
 func main() {
-    config := AppConfig{
-        BaseConfig: BaseConfig{Version: "1.0"},
-        Version:    "2.5-beta", // This sets AppConfig.Version
-        AppName:    "AuthService",
-    }
+  config := AppConfig{
+    BaseConfig: BaseConfig{Version: "1.0"},
+    Version:    "2.5-beta", // This sets AppConfig.Version
+    AppName:    "AuthService",
+  }
 
-    // Accessing `Version` directly gets the outer field.
-    fmt.Printf("App Version: %s\n", config.Version) // "2.5-beta"
+  // Accessing `Version` directly gets the outer field.
+  fmt.Printf("App Version: %s\n", config.Version) // "2.5-beta"
 
-    // The inner field is hidden. How do we get "1.0"?
-    // A common mistake is assuming it's overwritten or inaccessible.
-    fmt.Printf("Base Config Version is hidden, direct access gives: %s\n", config.Version)
+  // The inner field is hidden. How do we get "1.0"?
+  // A common mistake is assuming it's overwritten or inaccessible.
+  fmt.Printf("Base Config Version is hidden, direct access gives: %s\n", config.Version)
 }
 ```
 
@@ -402,26 +402,26 @@ package main
 import "fmt"
 
 type BaseConfig struct {
-    Version string
+  Version string
 }
 
 type AppConfig struct {
-    BaseConfig
-    Version string
-    AppName string
+  BaseConfig
+  Version string
+  AppName string
 }
 
 func main() {
-    config := AppConfig{
-        BaseConfig: BaseConfig{Version: "1.0"},
-        Version:    "2.5-beta",
-        AppName:    "AuthService",
-    }
+  config := AppConfig{
+    BaseConfig: BaseConfig{Version: "1.0"},
+    Version:    "2.5-beta",
+    AppName:    "AuthService",
+  }
 
-    fmt.Printf("App Version: %s\n", config.Version) // Accesses outer field
+  fmt.Printf("App Version: %s\n", config.Version) // Accesses outer field
 
-    // To access the shadowed field, qualify it with the embedded type name.
-    fmt.Printf("Base Config Version: %s\n", config.BaseConfig.Version) // Accesses inner field
+  // To access the shadowed field, qualify it with the embedded type name.
+  fmt.Printf("Base Config Version: %s\n", config.BaseConfig.Version) // Accesses inner field
 }
 ```
 
@@ -439,40 +439,40 @@ package main
 import "fmt"
 
 type Notifier interface {
-	Notify(message string)
+  Notify(message string)
 }
 
 type EmailNotifier struct {
-    Recipient string
+  Recipient string
 }
 
 func (n *EmailNotifier) Notify(message string) {
-	fmt.Printf("Sending email to %s: %s\n", n.Recipient, message)
+  fmt.Printf("Sending email to %s: %s\n", n.Recipient, message)
 }
 
 // AlertManager embeds the Notifier.
 type AlertManager struct {
-    Notifier // Embed the interface satisfaction
+  Notifier // Embed the interface satisfaction
 }
 
 func main() {
-    // Create an AlertManager but forget to initialize the Notifier.
-    // The `Notifier` field will be a nil pointer to EmailNotifier.
-    manager := AlertManager{}
+  // Create an AlertManager but forget to initialize the Notifier.
+  // The `Notifier` field will be a nil pointer to EmailNotifier.
+  manager := AlertManager{}
 
-    // This line will compile because AlertManager satisfies the Notifier interface.
-    // However, it will cause a runtime panic because manager.Notifier is nil.
-    SendMessage(manager, "System is down!")
+  // This line will compile because AlertManager satisfies the Notifier interface.
+  // However, it will cause a runtime panic because manager.Notifier is nil.
+  SendMessage(manager, "System is down!")
 }
 
 func SendMessage(n Notifier, msg string) {
-    // The following line will panic.
-    defer func() {
-        if r := recover(); r != nil {
-            fmt.Println("Recovered from panic:", r)
-        }
-    }()
-    n.Notify(msg)
+  // The following line will panic.
+  defer func() {
+    if r := recover(); r != nil {
+      fmt.Println("Recovered from panic:", r)
+    }
+  }()
+  n.Notify(msg)
 }
 ```
 
@@ -488,45 +488,45 @@ package main
 import "fmt"
 
 type Notifier interface {
-	Notify(message string)
+  Notify(message string)
 }
 
 type EmailNotifier struct {
-    Recipient string
+  Recipient string
 }
 
 func (n *EmailNotifier) Notify(message string) {
-	fmt.Printf("Sending email to %s: %s\n", n.Recipient, message)
+  fmt.Printf("Sending email to %s: %s\n", n.Recipient, message)
 }
 
 type AlertManager struct {
-    Notifier
+  Notifier
 }
 
 // NewAlertManager is a constructor that ensures Notifier is initialized.
 func NewAlertManager(notifier Notifier) *AlertManager {
-    return &AlertManager{Notifier: notifier}
+  return &AlertManager{Notifier: notifier}
 }
 
 // Add a method to the outer struct to handle the nil case gracefully.
 func (m *AlertManager) SafeNotify(message string) {
-    if m.Notifier == nil {
-        fmt.Printf("WARNING: No notifier configured for AlertManager. Message lost: %s\n", message)
-        return
-    }
-    m.Notifier.Notify(message)
+  if m.Notifier == nil {
+    fmt.Printf("WARNING: No notifier configured for AlertManager. Message lost: %s\n", message)
+    return
+  }
+  m.Notifier.Notify(message)
 }
 
 func main() {
-    // --- Safe way ---
-    // Use the constructor to ensure proper initialization.
-    emailNotifier := &EmailNotifier{Recipient: "devops@example.com"}
-    manager := NewAlertManager(emailNotifier)
-    manager.SafeNotify("System is stable.")
+  // --- Safe way ---
+  // Use the constructor to ensure proper initialization.
+  emailNotifier := &EmailNotifier{Recipient: "devops@example.com"}
+  manager := NewAlertManager(emailNotifier)
+  manager.SafeNotify("System is stable.")
 
-    // --- Unsafe way handled gracefully ---
-    managerWithoutNotifier := &AlertManager{} // Forgot to initialize
-    managerWithoutNotifier.SafeNotify("System is down!") // The nil check prevents a panic.
+  // --- Unsafe way handled gracefully ---
+  managerWithoutNotifier := &AlertManager{} // Forgot to initialize
+  managerWithoutNotifier.SafeNotify("System is down!") // The nil check prevents a panic.
 }
 
 ```
@@ -543,46 +543,46 @@ If an embedded struct has a state (fields that can be changed) and the outer str
 package main
 
 import (
-	"fmt"
-	"sync"
-	"time"
+  "fmt"
+  "sync"
+  "time"
 )
 
 // Counter is a simple counter, but it's not safe for concurrent use.
 type Counter struct {
-	count int
+  count int
 }
 
 func (c *Counter) Inc() {
-	c.count++ // RACE CONDITION HAPPENS HERE
+  c.count++ // RACE CONDITION HAPPENS HERE
 }
 
 func (c *Counter) Value() int {
-	return c.count
+  return c.count
 }
 
 type MetricsServer struct {
-	Counter // Embeds the unsafe counter
+  Counter // Embeds the unsafe counter
 }
 
 func main() {
-	server := MetricsServer{}
-	var wg sync.WaitGroup
+  server := MetricsServer{}
+  var wg sync.WaitGroup
 
-	// Start 100 goroutines that all increment the same counter.
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			server.Inc() // Calling the promoted method
-		}()
-	}
+  // Start 100 goroutines that all increment the same counter.
+  for i := 0; i < 100; i++ {
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      server.Inc() // Calling the promoted method
+    }()
+  }
 
-	wg.Wait()
+  wg.Wait()
 
-	// The final count will likely be less than 100 due to the race condition.
-	// Run this with `go run -race .` to detect the data race.
-	fmt.Printf("Final count: %d (expected 100)\n", server.Value())
+  // The final count will likely be less than 100 due to the race condition.
+  // Run this with `go run -race .` to detect the data race.
+  fmt.Printf("Final count: %d (expected 100)\n", server.Value())
 }
 ```
 **Remediation: Encapsulate Concurrency Control**
@@ -595,51 +595,51 @@ The best practice is to make the embedded type itself concurrency-safe. This way
 package main
 
 import (
-	"fmt"
-	"sync"
+  "fmt"
+  "sync"
 )
 
 // SafeCounter encapsulates its own state and synchronization.
 type SafeCounter struct {
-	mu    sync.Mutex
-	count int
+  mu    sync.Mutex
+  count int
 }
 
 // Inc is now a concurrency-safe method.
 func (c *SafeCounter) Inc() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.count++
+  c.mu.Lock()
+  defer c.mu.Unlock()
+  c.count++
 }
 
 func (c *SafeCounter) Value() int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.count
+  c.mu.Lock()
+  defer c.mu.Unlock()
+  return c.count
 }
 
 // MetricsServer now embeds the concurrency-safe counter.
 type MetricsServer struct {
-	SafeCounter
+  SafeCounter
 }
 
 func main() {
-	server := MetricsServer{}
-	var wg sync.WaitGroup
+  server := MetricsServer{}
+  var wg sync.WaitGroup
 
-	// Start 100 goroutines that all increment the same counter.
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			server.Inc() // Calling the promoted, now safe, method
-		}()
-	}
+  // Start 100 goroutines that all increment the same counter.
+  for i := 0; i < 100; i++ {
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      server.Inc() // Calling the promoted, now safe, method
+    }()
+  }
 
-	wg.Wait()
+  wg.Wait()
 
-	// The final count will always be 100.
-	fmt.Printf("Final count: %d (expected 100)\n", server.Value())
+  // The final count will always be 100.
+  fmt.Printf("Final count: %d (expected 100)\n", server.Value())
 }
 ```
 

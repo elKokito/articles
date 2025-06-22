@@ -38,12 +38,12 @@ Spawning a goroutine is syntactically trivial using the `go` keyword:
 
 ```go
 func someTask() {
-    // ... do some work
+  // ... do some work
 }
 
 func main() {
-    go someTask() // This starts a new goroutine.
-    // The main function continues immediately.
+  go someTask() // This starts a new goroutine.
+  // The main function continues immediately.
 }
 ```
 
@@ -86,7 +86,7 @@ A sender to a buffered channel only blocks when the buffer is full. A receiver o
 
 ```go
 for item := range ch {
-    // process item
+  // process item
 }
 ```
 
@@ -99,13 +99,13 @@ What if a goroutine needs to wait for data from multiple channels at once? Or wh
 ```go
 select {
 case val := <-ch1:
-    // Do something with val from ch1
+// Do something with val from ch1
 case ch2 <- "some data":
-    // We successfully sent data to ch2
+// We successfully sent data to ch2
 case <-time.After(1 * time.Second):
-    // Timed out after 1 second of waiting
+// Timed out after 1 second of waiting
 default:
-    // This case runs if no other channel operation is ready
+// This case runs if no other channel operation is ready
 }
 ```
 
@@ -133,161 +133,161 @@ Imagine you have a directory filled with thousands of application log files, and
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"io/fs"
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
+  "bufio"
+  "fmt"
+  "io/fs"
+  "log"
+  "os"
+  "path/filepath"
+  "strings"
+  "sync"
 )
 
 // Result holds the outcome of a single file scan.
 type Result struct {
-	FilePath     string
-	Found        bool
-	MatchingLine string
-	Err          error
+  FilePath     string
+  Found        bool
+  MatchingLine string
+  Err          error
 }
 
 // worker is a goroutine that receives file paths from a 'jobs' channel,
 // processes them, and sends the result to a 'results' channel.
 func worker(id int, wg *sync.WaitGroup, jobs <-chan string, results chan<- Result, searchPattern string) {
-	defer wg.Done() // Signal that this worker has finished when the function returns.
+  defer wg.Done() // Signal that this worker has finished when the function returns.
 
-	// The worker will process jobs from the channel until the channel is closed.
-	for path := range jobs {
-		fmt.Printf("Worker %d processing file: %s\n", id, path)
+  // The worker will process jobs from the channel until the channel is closed.
+  for path := range jobs {
+    fmt.Printf("Worker %d processing file: %s\n", id, path)
 
-		file, err := os.Open(path)
-		if err != nil {
-			results <- Result{FilePath: path, Err: err}
-			continue // Move to the next job.
-		}
-		defer file.Close()
+    file, err := os.Open(path)
+    if err != nil {
+      results <- Result{FilePath: path, Err: err}
+      continue // Move to the next job.
+    }
+    defer file.Close()
 
-		scanner := bufio.NewScanner(file)
-		lineNumber := 0
-		found := false
-		for scanner.Scan() {
-			lineNumber++
-			if strings.Contains(scanner.Text(), searchPattern) {
-				results <- Result{
-					FilePath:     path,
-					Found:        true,
-					MatchingLine: fmt.Sprintf("L%d: %s", lineNumber, scanner.Text()),
-				}
-				found = true
-				break // Found a match, no need to scan the rest of the file.
-			}
-		}
-
-		if !found {
-			// Send a "not found" result if we scanned the whole file without a match.
-			results <- Result{FilePath: path, Found: false}
-		}
-
-		if err := scanner.Err(); err != nil {
-			results <- Result{FilePath: path, Err: err}
-		}
+    scanner := bufio.NewScanner(file)
+    lineNumber := 0
+    found := false
+    for scanner.Scan() {
+      lineNumber++
+      if strings.Contains(scanner.Text(), searchPattern) {
+	results <- Result{
+	  FilePath:     path,
+	  Found:        true,
+	  MatchingLine: fmt.Sprintf("L%d: %s", lineNumber, scanner.Text()),
 	}
+	found = true
+	break // Found a match, no need to scan the rest of the file.
+      }
+    }
+
+    if !found {
+      // Send a "not found" result if we scanned the whole file without a match.
+      results <- Result{FilePath: path, Found: false}
+    }
+
+    if err := scanner.Err(); err != nil {
+      results <- Result{FilePath: path, Err: err}
+    }
+  }
 }
 
 // findLogFiles walks a directory and sends file paths to the jobs channel.
 func findLogFiles(wg *sync.WaitGroup, jobs chan<- string, root string) {
-	// When this function finishes, close the jobs channel to signal to workers
-	// that no more jobs will be sent.
-	defer close(jobs)
-	defer wg.Done()
+  // When this function finishes, close the jobs channel to signal to workers
+  // that no more jobs will be sent.
+  defer close(jobs)
+  defer wg.Done()
 
-	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() && strings.HasSuffix(path, ".log") {
-			jobs <- path
-		}
-		return nil
-	})
+  err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+    if err != nil {
+      return err
+    }
+    if !d.IsDir() && strings.HasSuffix(path, ".log") {
+      jobs <- path
+    }
+    return nil
+  })
 
-	if err != nil {
-		log.Printf("Error walking directory: %v", err)
-	}
+  if err != nil {
+    log.Printf("Error walking directory: %v", err)
+  }
 }
 
 func main() {
-	// --- Configuration ---
-	const (
-		logDir        = "./logs" // The directory to scan.
-		numWorkers    = 5        // The number of concurrent workers.
-		searchPattern = "CRITICAL_ERROR"
-	)
+  // --- Configuration ---
+  const (
+    logDir        = "./logs" // The directory to scan.
+    numWorkers    = 5        // The number of concurrent workers.
+    searchPattern = "CRITICAL_ERROR"
+  )
 
-	// Create a dummy log directory and files for demonstration.
-	// In a real scenario, this directory would already exist.
-	setupTestLogs(logDir, searchPattern)
-	defer os.RemoveAll(logDir)
+  // Create a dummy log directory and files for demonstration.
+  // In a real scenario, this directory would already exist.
+  setupTestLogs(logDir, searchPattern)
+  defer os.RemoveAll(logDir)
 
-	// --- Concurrency Orchestration ---
-	jobs := make(chan string, numWorkers)
-	results := make(chan Result, numWorkers)
-	var wgProducers, wgWorkers sync.WaitGroup
+  // --- Concurrency Orchestration ---
+  jobs := make(chan string, numWorkers)
+  results := make(chan Result, numWorkers)
+  var wgProducers, wgWorkers sync.WaitGroup
 
-	// Start the worker goroutines.
-	// They will block waiting for jobs.
-	wgWorkers.Add(numWorkers)
-	for i := 1; i <= numWorkers; i++ {
-		go worker(i, &wgWorkers, jobs, results, searchPattern)
-	}
+  // Start the worker goroutines.
+  // They will block waiting for jobs.
+  wgWorkers.Add(numWorkers)
+  for i := 1; i <= numWorkers; i++ {
+    go worker(i, &wgWorkers, jobs, results, searchPattern)
+  }
 
-	// Start a goroutine to find log files and send them to the 'jobs' channel.
-	wgProducers.Add(1)
-	go findLogFiles(&wgProducers, jobs, logDir)
+  // Start a goroutine to find log files and send them to the 'jobs' channel.
+  wgProducers.Add(1)
+  go findLogFiles(&wgProducers, jobs, logDir)
 
-	// Start a goroutine to wait for all producers to finish.
-	// Once they are done, we can safely close the 'jobs' channel.
-	go func() {
-		wgProducers.Wait()
-		// No need to close(jobs) here; findLogFiles does it.
-	}()
-	
-	// Start a goroutine to wait for all workers to finish.
-	// Once they finish, we can safely close the 'results' channel.
-	go func() {
-		wgWorkers.Wait()
-		close(results)
-	}()
+  // Start a goroutine to wait for all producers to finish.
+  // Once they are done, we can safely close the 'jobs' channel.
+  go func() {
+    wgProducers.Wait()
+    // No need to close(jobs) here; findLogFiles does it.
+  }()
 
-	// --- Process Results ---
-	// The main goroutine will now block here, collecting results
-	// until the 'results' channel is closed.
-	log.Println("Waiting for results...")
-	totalFound := 0
-	for res := range results {
-		if res.Err != nil {
-			log.Printf("Error processing %s: %v", res.FilePath, res.Err)
-		} else if res.Found {
-			totalFound++
-			log.Printf("SUCCESS! Found pattern in %s -> %s", res.FilePath, res.MatchingLine)
-		} else {
-			// Optional: log files where the pattern was not found.
-			// log.Printf("Pattern not found in %s", res.FilePath)
-		}
-	}
-	log.Printf("Finished processing. Found matches in %d files.", totalFound)
+  // Start a goroutine to wait for all workers to finish.
+  // Once they finish, we can safely close the 'results' channel.
+  go func() {
+    wgWorkers.Wait()
+    close(results)
+  }()
+
+  // --- Process Results ---
+  // The main goroutine will now block here, collecting results
+  // until the 'results' channel is closed.
+  log.Println("Waiting for results...")
+  totalFound := 0
+  for res := range results {
+    if res.Err != nil {
+      log.Printf("Error processing %s: %v", res.FilePath, res.Err)
+    } else if res.Found {
+      totalFound++
+      log.Printf("SUCCESS! Found pattern in %s -> %s", res.FilePath, res.MatchingLine)
+    } else {
+      // Optional: log files where the pattern was not found.
+      // log.Printf("Pattern not found in %s", res.FilePath)
+    }
+  }
+  log.Printf("Finished processing. Found matches in %d files.", totalFound)
 }
 
 // setupTestLogs is a helper to create a dummy environment.
 func setupTestLogs(logDir, pattern string) {
-	_ = os.Mkdir(logDir, 0755)
-	for i := 0; i < 20; i++ {
-		content := fmt.Sprintf("INFO: Request processed\nDEBUG: Cache hit\nINFO: User logged in\n")
-		if i%4 == 0 {
-			content += fmt.Sprintf("ALERT: High CPU usage\n%s: Database connection failed\n", pattern)
-		}
-		_ = os.WriteFile(filepath.Join(logDir, fmt.Sprintf("app-%d.log", i)), []byte(content), 0644)
-	}
+  _ = os.Mkdir(logDir, 0755)
+  for i := 0; i < 20; i++ {
+    content := fmt.Sprintf("INFO: Request processed\nDEBUG: Cache hit\nINFO: User logged in\n")
+    if i%4 == 0 {
+      content += fmt.Sprintf("ALERT: High CPU usage\n%s: Database connection failed\n", pattern)
+    }
+    _ = os.WriteFile(filepath.Join(logDir, fmt.Sprintf("app-%d.log", i)), []byte(content), 0644)
+  }
 }
 
 ```
@@ -327,107 +327,107 @@ Long-running services (like a custom Prometheus exporter or a webhook listener) 
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+  "context"
+  "fmt"
+  "log"
+  "net/http"
+  "os"
+  "os/signal"
+  "syscall"
+  "time"
 )
 
 // processor simulates a long-running task that can be cancelled.
 func processor(ctx context.Context, id int, taskQueue <-chan string) {
-	log.Printf("Processor %d starting...", id)
-	for {
-		select {
-		case <-ctx.Done():
-			// The context was cancelled. This is our signal to shut down.
-			// ctx.Err() will tell us why (e.g., context.Canceled, context.DeadlineExceeded).
-			log.Printf("Processor %d shutting down: %v", id, ctx.Err())
-			return // Exit the goroutine.
+  log.Printf("Processor %d starting...", id)
+  for {
+    select {
+    case <-ctx.Done():
+      // The context was cancelled. This is our signal to shut down.
+      // ctx.Err() will tell us why (e.g., context.Canceled, context.DeadlineExceeded).
+      log.Printf("Processor %d shutting down: %v", id, ctx.Err())
+      return // Exit the goroutine.
 
-		case task := <-taskQueue:
-			// Pretend to do some work that takes time.
-			log.Printf("Processor %d started processing task: %s", id, task)
-			// We can use another select to make the work itself cancellable.
-			select {
-			case <-ctx.Done():
-				log.Printf("Processor %d stopped work on task '%s' mid-flight.", id, task)
-				return
-			case <-time.After(3 * time.Second): // Simulate work
-				log.Printf("Processor %d finished task: %s", id, task)
-			}
-		}
-	}
+    case task := <-taskQueue:
+      // Pretend to do some work that takes time.
+      log.Printf("Processor %d started processing task: %s", id, task)
+      // We can use another select to make the work itself cancellable.
+      select {
+      case <-ctx.Done():
+	log.Printf("Processor %d stopped work on task '%s' mid-flight.", id, task)
+	return
+      case <-time.After(3 * time.Second): // Simulate work
+	log.Printf("Processor %d finished task: %s", id, task)
+      }
+    }
+  }
 }
 
 func main() {
-	log.Println("Starting service...")
+  log.Println("Starting service...")
 
-	// --- Context Setup for Graceful Shutdown ---
-	// Create a context that is cancelled when an interrupt (Ctrl+C) or SIGTERM is received.
-	// signal.NotifyContext is a Go 1.16+ convenience function.
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop() // Call stop to release resources associated with the context.
+  // --- Context Setup for Graceful Shutdown ---
+  // Create a context that is cancelled when an interrupt (Ctrl+C) or SIGTERM is received.
+  // signal.NotifyContext is a Go 1.16+ convenience function.
+  ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+  defer stop() // Call stop to release resources associated with the context.
 
-	// --- Service Logic ---
-	taskQueue := make(chan string, 1)
-	
-	// Start a background processor goroutine.
-	go processor(ctx, 1, taskQueue)
+  // --- Service Logic ---
+  taskQueue := make(chan string, 1)
 
-	// A simple HTTP server to inject tasks into our service.
-	http.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
-		taskName := r.URL.Query().Get("name")
-		if taskName == "" {
-			http.Error(w, "Missing task name", http.StatusBadRequest)
-			return
-		}
+  // Start a background processor goroutine.
+  go processor(ctx, 1, taskQueue)
 
-		// Use a select to avoid blocking forever if the processor is busy.
-		select {
-		case taskQueue <- taskName:
-			fmt.Fprintf(w, "Task '%s' queued successfully.", taskName)
-			log.Printf("Queued task: %s", taskName)
-		case <-time.After(1 * time.Second):
-			http.Error(w, "Server busy, task queue is full. Try again later.", http.StatusServiceUnavailable)
-		case <-ctx.Done():
-			http.Error(w, "Server is shutting down.", http.StatusServiceUnavailable)
-		}
-	})
+  // A simple HTTP server to inject tasks into our service.
+  http.HandleFunc("/task", func(w http.ResponseWriter, r *http.Request) {
+    taskName := r.URL.Query().Get("name")
+    if taskName == "" {
+      http.Error(w, "Missing task name", http.StatusBadRequest)
+      return
+    }
 
-	// Run the HTTP server in its own goroutine so it doesn't block the main thread.
-	server := &http.Server{Addr: ":8080"}
-	go func() {
-		log.Println("HTTP server listening on :8080")
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatalf("HTTP server error: %v", err)
-		}
-	}()
+    // Use a select to avoid blocking forever if the processor is busy.
+    select {
+    case taskQueue <- taskName:
+      fmt.Fprintf(w, "Task '%s' queued successfully.", taskName)
+      log.Printf("Queued task: %s", taskName)
+    case <-time.After(1 * time.Second):
+      http.Error(w, "Server busy, task queue is full. Try again later.", http.StatusServiceUnavailable)
+    case <-ctx.Done():
+      http.Error(w, "Server is shutting down.", http.StatusServiceUnavailable)
+    }
+  })
 
-	// --- Wait for Shutdown Signal ---
-	// The main goroutine blocks here until the context is cancelled.
-	<-ctx.Done()
+  // Run the HTTP server in its own goroutine so it doesn't block the main thread.
+  server := &http.Server{Addr: ":8080"}
+  go func() {
+    log.Println("HTTP server listening on :8080")
+    if err := server.ListenAndServe(); err != http.ErrServerClosed {
+      log.Fatalf("HTTP server error: %v", err)
+    }
+  }()
 
-	log.Println("Shutdown signal received. Starting graceful shutdown...")
-	stop() // Best practice to call stop() immediately.
+  // --- Wait for Shutdown Signal ---
+  // The main goroutine blocks here until the context is cancelled.
+  <-ctx.Done()
 
-	// Create a new context with a timeout for the shutdown process itself.
-	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelShutdown()
+  log.Println("Shutdown signal received. Starting graceful shutdown...")
+  stop() // Best practice to call stop() immediately.
 
-	// Shut down the HTTP server gracefully.
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("HTTP server shutdown error: %v", err)
-	} else {
-		log.Println("HTTP server shut down gracefully.")
-	}
+  // Create a new context with a timeout for the shutdown process itself.
+  shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancelShutdown()
 
-	// In a real application, you would add a WaitGroup to wait for the 'processor'
-	// goroutine to finish its cleanup before exiting main.
-	log.Println("Service shut down complete.")
+  // Shut down the HTTP server gracefully.
+  if err := server.Shutdown(shutdownCtx); err != nil {
+    log.Printf("HTTP server shutdown error: %v", err)
+  } else {
+    log.Println("HTTP server shut down gracefully.")
+  }
+
+  // In a real application, you would add a WaitGroup to wait for the 'processor'
+  // goroutine to finish its cleanup before exiting main.
+  log.Println("Service shut down complete.")
 }
 ```
 
@@ -481,78 +481,78 @@ A data race occurs when two or more goroutines access the same memory location c
 package main
 
 import (
-	"fmt"
-	"sync"
+  "fmt"
+  "sync"
 )
 
 // --- PROBLEM: Race Condition ---
 // This function demonstrates a classic data race.
 // Multiple goroutines increment the counter concurrently without synchronization.
 func raceConditionProblem() {
-	var counter int
-	var wg sync.WaitGroup
-	numGoroutines := 1000
+  var counter int
+  var wg sync.WaitGroup
+  numGoroutines := 1000
 
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func() {
-			defer wg.Done()
-			// RACE: Multiple goroutines read, increment, and write back the value of 'counter'
-			// at the same time. The final value will almost certainly not be 1000.
-			counter++
-		}()
-	}
-	wg.Wait()
-	fmt.Printf("[Problem] Final counter value (should be %d): %d\n", numGoroutines, counter)
+  wg.Add(numGoroutines)
+  for i := 0; i < numGoroutines; i++ {
+    go func() {
+      defer wg.Done()
+      // RACE: Multiple goroutines read, increment, and write back the value of 'counter'
+      // at the same time. The final value will almost certainly not be 1000.
+      counter++
+    }()
+  }
+  wg.Wait()
+  fmt.Printf("[Problem] Final counter value (should be %d): %d\n", numGoroutines, counter)
 }
 
 // --- REMEDIATION 1: Using a Mutex ---
 // A mutex ensures that only one goroutine can access the critical section (the counter) at a time.
 func remediateWithMutex() {
-	var counter int
-	var wg sync.WaitGroup
-	var mu sync.Mutex // The mutex to protect the 'counter' variable.
-	numGoroutines := 1000
+  var counter int
+  var wg sync.WaitGroup
+  var mu sync.Mutex // The mutex to protect the 'counter' variable.
+  numGoroutines := 1000
 
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func() {
-			defer wg.Done()
-			mu.Lock()   // Acquire the lock before accessing the shared resource.
-			counter++
-			mu.Unlock() // Release the lock after access.
-		}()
-	}
-	wg.Wait()
-	fmt.Printf("[Mutex Solution] Final counter value: %d\n", counter)
+  wg.Add(numGoroutines)
+  for i := 0; i < numGoroutines; i++ {
+    go func() {
+      defer wg.Done()
+      mu.Lock()   // Acquire the lock before accessing the shared resource.
+      counter++
+      mu.Unlock() // Release the lock after access.
+    }()
+  }
+  wg.Wait()
+  fmt.Printf("[Mutex Solution] Final counter value: %d\n", counter)
 }
 
 // --- REMEDIATION 2: Using Atomic Operations ---
 // For simple numeric operations, atomics are often more efficient than mutexes.
 func remediateWithAtomic() {
-	var counter int64 // Atomic functions in Go 1.24 require specific types like int64.
-	var wg sync.WaitGroup
-	numGoroutines := 1000
+  var counter int64 // Atomic functions in Go 1.24 require specific types like int64.
+  var wg sync.WaitGroup
+  numGoroutines := 1000
 
-	wg.Add(numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
-		go func() {
-			defer wg.Done()
-			// This performs the read-increment-write cycle as a single, indivisible (atomic) operation.
-			// No other goroutine can interfere.
-			// atomic.AddInt64(&counter, 1)
-		}()
-	}
-	wg.Wait()
-	fmt.Printf("[Atomic Solution] Final counter value: %d\n", counter)
+  wg.Add(numGoroutines)
+  for i := 0; i < numGoroutines; i++ {
+    go func() {
+      defer wg.Done()
+      // This performs the read-increment-write cycle as a single, indivisible (atomic) operation.
+      // No other goroutine can interfere.
+      // atomic.AddInt64(&counter, 1)
+    }()
+  }
+  wg.Wait()
+  fmt.Printf("[Atomic Solution] Final counter value: %d\n", counter)
 }
 
 
 func main() {
-	fmt.Println("--- Demonstrating Race Conditions and Fixes ---")
-	raceConditionProblem()
-	remediateWithMutex()
-	remediateWithAtomic()
+  fmt.Println("--- Demonstrating Race Conditions and Fixes ---")
+  raceConditionProblem()
+  remediateWithMutex()
+  remediateWithAtomic()
 }
 
 /*
@@ -593,9 +593,9 @@ A deadlock occurs when a set of goroutines are blocked, each waiting for another
 package main
 
 import (
-	"fmt"
-	"sync"
-	"time"
+  "fmt"
+  "sync"
+  "time"
 )
 
 // --- PROBLEM: Unbuffered Channel Deadlock ---
@@ -603,140 +603,140 @@ import (
 // goroutine ready to receive, the main goroutine blocks forever.
 // The Go runtime detects this and panics.
 func channelDeadlock() {
-	ch := make(chan int) // Unbuffered channel
+  ch := make(chan int) // Unbuffered channel
 
-	fmt.Println("Demonstrating channel deadlock. This will panic.")
-	
-	// This will cause a deadlock because the send will block, and there's
-	// no other goroutine to receive the value. The program will panic.
-	ch <- 1 
-	
-	fmt.Println("This line will never be reached.")
+  fmt.Println("Demonstrating channel deadlock. This will panic.")
+
+  // This will cause a deadlock because the send will block, and there's
+  // no other goroutine to receive the value. The program will panic.
+  ch <- 1 
+
+  fmt.Println("This line will never be reached.")
 }
 
 // --- REMEDIATION: Channel Deadlock ---
 // Start a receiver goroutine before sending.
 func fixChannelDeadlock() {
-	ch := make(chan int)
+  ch := make(chan int)
 
-	// Start a goroutine that is ready to receive from the channel.
-	go func() {
-		val := <-ch
-		fmt.Printf("[Channel Fix] Received value: %d\n", val)
-	}()
+  // Start a goroutine that is ready to receive from the channel.
+  go func() {
+    val := <-ch
+    fmt.Printf("[Channel Fix] Received value: %d\n", val)
+  }()
 
-	time.Sleep(10 * time.Millisecond) // Give the receiver goroutine time to start
+  time.Sleep(10 * time.Millisecond) // Give the receiver goroutine time to start
 
-	fmt.Println("[Channel Fix] Sending value...")
-	ch <- 1 // This send will now succeed because a receiver is ready.
-	fmt.Println("[Channel Fix] Value sent successfully.")
-	time.Sleep(10 * time.Millisecond) // Give the receiver time to print
+  fmt.Println("[Channel Fix] Sending value...")
+  ch <- 1 // This send will now succeed because a receiver is ready.
+  fmt.Println("[Channel Fix] Value sent successfully.")
+  time.Sleep(10 * time.Millisecond) // Give the receiver time to print
 }
 
 
 // --- PROBLEM: Mutex Deadlock ---
 // Two goroutines try to lock two mutexes in opposite orders.
 func mutexDeadlock() {
-	var mu1, mu2 sync.Mutex
-	var wg sync.WaitGroup
-	fmt.Println("\nDemonstrating mutex deadlock. This will hang.")
+  var mu1, mu2 sync.Mutex
+  var wg sync.WaitGroup
+  fmt.Println("\nDemonstrating mutex deadlock. This will hang.")
 
-	wg.Add(2)
-	// Goroutine 1
-	go func() {
-		defer wg.Done()
-		fmt.Println("G1: Locking mu1...")
-		mu1.Lock()
-		fmt.Println("G1: Locked mu1.")
-		time.Sleep(50 * time.Millisecond) // Simulate work
-		fmt.Println("G1: Trying to lock mu2...")
-		mu2.Lock() // Will block here, waiting for Goroutine 2 to release mu2
-		fmt.Println("G1: Locked mu2.")
-		mu2.Unlock()
-		mu1.Unlock()
-	}()
+  wg.Add(2)
+  // Goroutine 1
+  go func() {
+    defer wg.Done()
+    fmt.Println("G1: Locking mu1...")
+    mu1.Lock()
+    fmt.Println("G1: Locked mu1.")
+    time.Sleep(50 * time.Millisecond) // Simulate work
+    fmt.Println("G1: Trying to lock mu2...")
+    mu2.Lock() // Will block here, waiting for Goroutine 2 to release mu2
+    fmt.Println("G1: Locked mu2.")
+    mu2.Unlock()
+    mu1.Unlock()
+  }()
 
-	// Goroutine 2
-	go func() {
-		defer wg.Done()
-		fmt.Println("G2: Locking mu2...")
-		mu2.Lock()
-		fmt.Println("G2: Locked mu2.")
-		time.Sleep(50 * time.Millisecond) // Simulate work
-		fmt.Println("G2: Trying to lock mu1...")
-		mu1.Lock() // Will block here, waiting for Goroutine 1 to release mu1
-		fmt.Println("G2: Locked mu1.")
-		mu1.Unlock()
-		mu2.Unlock()
-	}()
+  // Goroutine 2
+  go func() {
+    defer wg.Done()
+    fmt.Println("G2: Locking mu2...")
+    mu2.Lock()
+    fmt.Println("G2: Locked mu2.")
+    time.Sleep(50 * time.Millisecond) // Simulate work
+    fmt.Println("G2: Trying to lock mu1...")
+    mu1.Lock() // Will block here, waiting for Goroutine 1 to release mu1
+    fmt.Println("G2: Locked mu1.")
+    mu1.Unlock()
+    mu2.Unlock()
+  }()
 
-	wg.Wait() // This will wait forever.
-	fmt.Println("Mutex deadlock section finished. (You won't see this).")
+  wg.Wait() // This will wait forever.
+  fmt.Println("Mutex deadlock section finished. (You won't see this).")
 }
 
 // --- REMEDIATION: Mutex Deadlock ---
 // Enforce a strict lock ordering. Always lock mu1 before mu2.
 func fixMutexDeadlock() {
-	var mu1, mu2 sync.Mutex
-	var wg sync.WaitGroup
-	fmt.Println("\nFixing mutex deadlock with lock ordering.")
+  var mu1, mu2 sync.Mutex
+  var wg sync.WaitGroup
+  fmt.Println("\nFixing mutex deadlock with lock ordering.")
 
-	wg.Add(2)
-	// Goroutine 1 (locks mu1, then mu2)
-	go func() {
-		defer wg.Done()
-		mu1.Lock()
-		fmt.Println("G1 Fixed: Locked mu1.")
-		time.Sleep(50 * time.Millisecond)
-		mu2.Lock()
-		fmt.Println("G1 Fixed: Locked mu2.")
-		
-		// Do work...
-		
-		mu2.Unlock()
-		mu1.Unlock()
-		fmt.Println("G1 Fixed: Unlocked both.")
-	}()
+  wg.Add(2)
+  // Goroutine 1 (locks mu1, then mu2)
+  go func() {
+    defer wg.Done()
+    mu1.Lock()
+    fmt.Println("G1 Fixed: Locked mu1.")
+    time.Sleep(50 * time.Millisecond)
+    mu2.Lock()
+    fmt.Println("G1 Fixed: Locked mu2.")
 
-	// Goroutine 2 (also locks mu1, then mu2)
-	go func() {
-		defer wg.Done()
-		mu1.Lock()
-		fmt.Println("G2 Fixed: Locked mu1.")
-		time.Sleep(50 * time.Millisecond)
-		mu2.Lock()
-		fmt.Println("G2 Fixed: Locked mu2.")
+    // Do work...
 
-		// Do work...
+    mu2.Unlock()
+    mu1.Unlock()
+    fmt.Println("G1 Fixed: Unlocked both.")
+  }()
 
-		mu2.Unlock()
-		mu1.Unlock()
-		fmt.Println("G2 Fixed: Unlocked both.")
-	}()
+  // Goroutine 2 (also locks mu1, then mu2)
+  go func() {
+    defer wg.Done()
+    mu1.Lock()
+    fmt.Println("G2 Fixed: Locked mu1.")
+    time.Sleep(50 * time.Millisecond)
+    mu2.Lock()
+    fmt.Println("G2 Fixed: Locked mu2.")
 
-	wg.Wait()
-	fmt.Println("Mutex deadlock fix finished successfully.")
+    // Do work...
+
+    mu2.Unlock()
+    mu1.Unlock()
+    fmt.Println("G2 Fixed: Unlocked both.")
+  }()
+
+  wg.Wait()
+  fmt.Println("Mutex deadlock fix finished successfully.")
 }
 
 
 func main() {
-	// We wrap the channel deadlock in a function that recovers from the panic
-	// so the rest of the examples can run.
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				fmt.Printf("Recovered from expected panic: %v\n", r)
-			}
-		}()
-		channelDeadlock()
-	}()
+  // We wrap the channel deadlock in a function that recovers from the panic
+  // so the rest of the examples can run.
+  func() {
+    defer func() {
+      if r := recover(); r != nil {
+	fmt.Printf("Recovered from expected panic: %v\n", r)
+      }
+    }()
+    channelDeadlock()
+  }()
 
-	fixChannelDeadlock()
-	
-	// We can't run the mutex deadlock and its fix in the same program
-	// because the deadlock would hang the program. Run them separately.
-	// mutexDeadlock() 
-	fixMutexDeadlock()
+  fixChannelDeadlock()
+
+  // We can't run the mutex deadlock and its fix in the same program
+  // because the deadlock would hang the program. Run them separately.
+  // mutexDeadlock() 
+  fixMutexDeadlock()
 }
 
 /*
@@ -781,10 +781,10 @@ A goroutine leak is a situation where a goroutine is created but never terminate
 package main
 
 import (
-	"context"
-	"fmt"
-	"runtime"
-	"time"
+  "context"
+  "fmt"
+  "runtime"
+  "time"
 )
 
 // --- PROBLEM: Goroutine Leak ---
@@ -792,78 +792,78 @@ import (
 // If the send takes longer than that, the receiver moves on, leaving the sender
 // goroutine blocked forever on the send operation.
 func goroutineLeakProblem() {
-	// A buffered channel of size 0 is an unbuffered channel.
-	ch := make(chan int)
+  // A buffered channel of size 0 is an unbuffered channel.
+  ch := make(chan int)
 
-	go func() {
-		fmt.Println("[Problem] Sender goroutine started, will sleep for 2 seconds...")
-		time.Sleep(2 * time.Second)
-		
-		// This send will block forever because the receiver has already timed out.
-		// THIS IS THE GOROUTINE LEAK.
-		ch <- 1 
-		
-		fmt.Println("[Problem] Sender finished.") // This line is never reached.
-	}()
+  go func() {
+    fmt.Println("[Problem] Sender goroutine started, will sleep for 2 seconds...")
+    time.Sleep(2 * time.Second)
 
-	select {
-	case val := <-ch:
-		fmt.Printf("[Problem] Received value: %d\n", val)
-	case <-time.After(1 * time.Second):
-		fmt.Println("[Problem] Receiver timed out after 1 second. The sender is now leaked.")
-	}
+    // This send will block forever because the receiver has already timed out.
+    // THIS IS THE GOROUTINE LEAK.
+    ch <- 1 
+
+    fmt.Println("[Problem] Sender finished.") // This line is never reached.
+  }()
+
+  select {
+  case val := <-ch:
+    fmt.Printf("[Problem] Received value: %d\n", val)
+  case <-time.After(1 * time.Second):
+    fmt.Println("[Problem] Receiver timed out after 1 second. The sender is now leaked.")
+  }
 }
 
 // --- REMEDIATION: Using context for Cancellation ---
 // We pass a context to the sender. The sender uses a select statement
 // to attempt the send OR react to the context being cancelled.
 func fixGoroutineLeak() {
-	ch := make(chan int)
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+  ch := make(chan int)
+  ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+  defer cancel()
 
-	go func(ctx context.Context) {
-		fmt.Println("[Fix] Sender goroutine started, will sleep for 2 seconds...")
-		time.Sleep(2 * time.Second)
+  go func(ctx context.Context) {
+    fmt.Println("[Fix] Sender goroutine started, will sleep for 2 seconds...")
+    time.Sleep(2 * time.Second)
 
-		select {
-		case ch <- 1:
-			fmt.Println("[Fix] Sent value successfully.")
-		case <-ctx.Done():
-			// The context's deadline was exceeded before we could send.
-			// The goroutine can now exit cleanly.
-			fmt.Printf("[Fix] Sender stopping because context was cancelled: %v\n", ctx.Err())
-			return // No leak!
-		}
-	}(ctx)
+    select {
+    case ch <- 1:
+      fmt.Println("[Fix] Sent value successfully.")
+    case <-ctx.Done():
+      // The context's deadline was exceeded before we could send.
+      // The goroutine can now exit cleanly.
+      fmt.Printf("[Fix] Sender stopping because context was cancelled: %v\n", ctx.Err())
+      return // No leak!
+    }
+  }(ctx)
 
-	// The receiver logic is the same, but now the sender has a way out.
-	select {
-	case val := <-ch:
-		fmt.Printf("[Fix] Received value: %d\n", val)
-	case <-time.After(3 * time.Second): // Wait long enough to see the sender's message
-		fmt.Println("[Fix] Receiver finished waiting.")
-	}
+  // The receiver logic is the same, but now the sender has a way out.
+  select {
+  case val := <-ch:
+    fmt.Printf("[Fix] Received value: %d\n", val)
+  case <-time.After(3 * time.Second): // Wait long enough to see the sender's message
+    fmt.Println("[Fix] Receiver finished waiting.")
+  }
 }
 
 
 func main() {
-	fmt.Printf("Initial number of goroutines: %d\n", runtime.NumGoroutine())
-	
-	goroutineLeakProblem()
-	
-	// Give the leaked goroutine time to get stuck.
-	time.Sleep(100 * time.Millisecond)
-	fmt.Printf("Goroutines after leak problem: %d (Note: it's +1)\n\n", runtime.NumGoroutine())
+  fmt.Printf("Initial number of goroutines: %d\n", runtime.NumGoroutine())
 
-	fixGoroutineLeak()
+  goroutineLeakProblem()
 
-	// In a real program, we would need to wait for the fixed goroutine to exit.
-	// For this demo, we just wait a bit.
-	time.Sleep(3 * time.Second)
-	// The number of goroutines should return to the baseline.
-	// Note: The Go runtime might have its own background goroutines.
-	fmt.Printf("Goroutines after fix: %d (Should be back to initial)\n", runtime.NumGoroutine())
+  // Give the leaked goroutine time to get stuck.
+  time.Sleep(100 * time.Millisecond)
+  fmt.Printf("Goroutines after leak problem: %d (Note: it's +1)\n\n", runtime.NumGoroutine())
+
+  fixGoroutineLeak()
+
+  // In a real program, we would need to wait for the fixed goroutine to exit.
+  // For this demo, we just wait a bit.
+  time.Sleep(3 * time.Second)
+  // The number of goroutines should return to the baseline.
+  // Note: The Go runtime might have its own background goroutines.
+  fmt.Printf("Goroutines after fix: %d (Should be back to initial)\n", runtime.NumGoroutine())
 }
 
 /*
@@ -899,22 +899,22 @@ Sending to or receiving from a `nil` channel blocks forever. This can be a sourc
 package main
 
 import (
-	"fmt"
-	"time"
+  "fmt"
+  "time"
 )
 
 // --- PROBLEM: Accidental Nil Channel Block ---
 func nilChannelBlock() {
-	// This channel is declared but not initialized. Its value is nil.
-	var ch chan int 
-	
-	fmt.Println("Demonstrating nil channel block. This will hang if not in a goroutine.")
+  // This channel is declared but not initialized. Its value is nil.
+  var ch chan int 
 
-	go func() {
-		// This goroutine will block here forever.
-		<-ch
-		fmt.Println("This will never print.")
-	}()
+  fmt.Println("Demonstrating nil channel block. This will hang if not in a goroutine.")
+
+  go func() {
+    // This goroutine will block here forever.
+    <-ch
+    fmt.Println("This will never print.")
+  }()
 }
 
 // --- BEST PRACTICE: Using a Nil Channel to Control a Select Loop ---
@@ -922,48 +922,48 @@ func nilChannelBlock() {
 // Once the "done" signal is received, we want to stop listening for data but
 // continue doing other things in our select loop.
 func useNilChannelInSelect() {
-	dataCh := make(chan string, 1)
-	doneCh := make(chan bool)
+  dataCh := make(chan string, 1)
+  doneCh := make(chan bool)
 
-	// Producer goroutine
-	go func() {
-		dataCh <- "First message"
-		dataCh <- "Second message"
-		time.Sleep(50 * time.Millisecond)
-		doneCh <- true
-	}()
+  // Producer goroutine
+  go func() {
+    dataCh <- "First message"
+    dataCh <- "Second message"
+    time.Sleep(50 * time.Millisecond)
+    doneCh <- true
+  }()
 
-	// Ticker goroutine for our select loop
-	ticker := time.NewTicker(20 * time.Millisecond)
-	defer ticker.Stop()
-	
-	for {
-		select {
-		case d := <-dataCh:
-			// If dataCh is nil, this case is effectively disabled and will never be chosen.
-			fmt.Printf("Received data: %s\n", d)
-		case <-doneCh:
-			fmt.Println("Done signal received. Disabling data channel.")
-			// By setting dataCh to nil, we prevent this case from ever being selected again.
-			// This is safer and more flexible than using a boolean flag.
-			dataCh = nil 
-		case t := <-ticker.C:
-			fmt.Printf("Tick at %v\n", t.Format("15:04:05.000"))
-			if dataCh == nil {
-				// We can now exit the loop once all channels are disabled or drained.
-				fmt.Println("Data channel is nil, exiting loop.")
-				return
-			}
-		}
-	}
+  // Ticker goroutine for our select loop
+  ticker := time.NewTicker(20 * time.Millisecond)
+  defer ticker.Stop()
+
+  for {
+    select {
+    case d := <-dataCh:
+      // If dataCh is nil, this case is effectively disabled and will never be chosen.
+      fmt.Printf("Received data: %s\n", d)
+    case <-doneCh:
+      fmt.Println("Done signal received. Disabling data channel.")
+      // By setting dataCh to nil, we prevent this case from ever being selected again.
+      // This is safer and more flexible than using a boolean flag.
+      dataCh = nil 
+    case t := <-ticker.C:
+      fmt.Printf("Tick at %v\n", t.Format("15:04:05.000"))
+      if dataCh == nil {
+	// We can now exit the loop once all channels are disabled or drained.
+	fmt.Println("Data channel is nil, exiting loop.")
+	return
+      }
+    }
+  }
 }
 
 func main() {
-	nilChannelBlock() // This will leak a goroutine but the main program continues.
-	fmt.Println("The nilChannelBlock function returned, but leaked a goroutine.")
-	
-	fmt.Println("\n--- Using Nil Channel to Control Select ---")
-	useNilChannelInSelect()
+  nilChannelBlock() // This will leak a goroutine but the main program continues.
+  fmt.Println("The nilChannelBlock function returned, but leaked a goroutine.")
+
+  fmt.Println("\n--- Using Nil Channel to Control Select ---")
+  useNilChannelInSelect()
 }
 
 /*

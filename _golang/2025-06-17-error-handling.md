@@ -32,7 +32,7 @@ The `error` type is a built-in interface in Go, and it's remarkably simple:
 
 ```go
 type error interface {
-    Error() string
+  Error() string
 }
 ```
 
@@ -49,11 +49,11 @@ Consider this Python snippet:
 
 ```python
 try:
-    # This might throw a FileNotFoundError
-    f = open("config.yaml")
-    # ... more code
+  # This might throw a FileNotFoundError
+  f = open("config.yaml")
+  # ... more code
 except FileNotFoundError as e:
-    print(f"Configuration file not found: {e}")
+  print(f"Configuration file not found: {e}")
 ```
 
 The equivalent Go code makes the error handling path explicit and local:
@@ -61,8 +61,8 @@ The equivalent Go code makes the error handling path explicit and local:
 ```go
 f, err := os.Open("config.yaml")
 if err != nil {
-    // Handle the error immediately
-    log.Fatalf("Configuration file not found: %v", err)
+  // Handle the error immediately
+  log.Fatalf("Configuration file not found: %v", err)
 }
 defer f.Close()
 // ... more code
@@ -83,69 +83,69 @@ This example uses only the standard library, so no external dependencies are nee
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
+  "encoding/json"
+  "fmt"
+  "os"
 )
 
 // Config represents a simple configuration structure.
 type Config struct {
-	ListenAddr string `json:"listenAddr"`
-	LogLevel   string `json:"logLevel"`
+  ListenAddr string `json:"listenAddr"`
+  LogLevel   string `json:"logLevel"`
 }
 
 // loadConfig opens a file, decodes the JSON, and returns a Config struct.
 // It returns a non-nil error if any step fails.
 func loadConfig(path string) (*Config, error) {
-	// Attempt to open the configuration file.
-	// os.Open returns two values: a pointer to an os.File and an error.
-	file, err := os.Open(path)
-	if err != nil {
-		// If os.Open fails, it returns a non-nil error.
-		// We add context to the error and return it immediately.
-		// The *Config return value will be nil.
-		return nil, fmt.Errorf("failed to open config file '%s': %w", path, err)
-	}
-	// defer ensures file.Close() is called just before the function returns.
-	// This is crucial for resource cleanup, even if errors occur later.
-	defer file.Close()
+  // Attempt to open the configuration file.
+  // os.Open returns two values: a pointer to an os.File and an error.
+  file, err := os.Open(path)
+  if err != nil {
+    // If os.Open fails, it returns a non-nil error.
+    // We add context to the error and return it immediately.
+    // The *Config return value will be nil.
+    return nil, fmt.Errorf("failed to open config file '%s': %w", path, err)
+  }
+  // defer ensures file.Close() is called just before the function returns.
+  // This is crucial for resource cleanup, even if errors occur later.
+  defer file.Close()
 
-	// Create a new Config struct to hold the parsed data.
-	var cfg Config
-	// Create a JSON decoder for the opened file.
-	decoder := json.NewDecoder(file)
-	
-	// Decode the JSON from the file into the cfg struct.
-	// decoder.Decode returns an error if the JSON is malformed or an I/O error occurs.
-	if err := decoder.Decode(&cfg); err != nil {
-		// If decoding fails, wrap the error with context and return.
-		return nil, fmt.Errorf("failed to parse JSON from '%s': %w", path, err)
-	}
+  // Create a new Config struct to hold the parsed data.
+  var cfg Config
+  // Create a JSON decoder for the opened file.
+  decoder := json.NewDecoder(file)
 
-	// If everything succeeded, return the populated config and a nil error.
-	return &cfg, nil
+  // Decode the JSON from the file into the cfg struct.
+  // decoder.Decode returns an error if the JSON is malformed or an I/O error occurs.
+  if err := decoder.Decode(&cfg); err != nil {
+    // If decoding fails, wrap the error with context and return.
+    return nil, fmt.Errorf("failed to parse JSON from '%s': %w", path, err)
+  }
+
+  // If everything succeeded, return the populated config and a nil error.
+  return &cfg, nil
 }
 
 func main() {
-	// Create a dummy config file for demonstration.
-	content := []byte(`{"listenAddr": ":8080", "logLevel": "info"}`)
-	if err := os.WriteFile("config.json", content, 0644); err != nil {
-		fmt.Printf("setup error: failed to write dummy config: %v\n", err)
-		return
-	}
-	defer os.Remove("config.json") // Clean up the dummy file.
+  // Create a dummy config file for demonstration.
+  content := []byte(`{"listenAddr": ":8080", "logLevel": "info"}`)
+  if err := os.WriteFile("config.json", content, 0644); err != nil {
+    fmt.Printf("setup error: failed to write dummy config: %v\n", err)
+    return
+  }
+  defer os.Remove("config.json") // Clean up the dummy file.
 
-	// Call our function and check for errors. This is the idiomatic pattern.
-	config, err := loadConfig("config.json")
-	if err != nil {
-		// In a real application, you'd use a structured logger.
-		fmt.Printf("Error: %v\n", err)
-		os.Exit(1)
-	}
+  // Call our function and check for errors. This is the idiomatic pattern.
+  config, err := loadConfig("config.json")
+  if err != nil {
+    // In a real application, you'd use a structured logger.
+    fmt.Printf("Error: %v\n", err)
+    os.Exit(1)
+  }
 
-	fmt.Printf("Configuration loaded successfully:\n")
-	fmt.Printf("  Listen Address: %s\n", config.ListenAddr)
-	fmt.Printf("  Log Level:      %s\n", config.LogLevel)
+  fmt.Printf("Configuration loaded successfully:\n")
+  fmt.Printf("  Listen Address: %s\n", config.ListenAddr)
+  fmt.Printf("  Log Level:      %s\n", config.LogLevel)
 }
 ```
 
@@ -164,7 +164,7 @@ func main() {
       Log Level:      info
     ```
 3.  **Simulate an Error:** To see the error handling in action, try loading a non-existent file. Change `loadConfig("config.json")` to `loadConfig("missing.json")` in `main()` and run it again.
-    **Expected Error Output:**
+**Expected Error Output:**
     ```
     Error: failed to open config file 'missing.json': open missing.json: no such file or directory
     exit status 1
@@ -197,7 +197,7 @@ The most dangerous anti-pattern is deliberately ignoring an error, often using t
     // GOOD: Always check the error.
     file, err := os.Open("important.txt")
     if err != nil {
-        log.Fatalf("Critical failure: could not open important.txt: %v", err)
+      log.Fatalf("Critical failure: could not open important.txt: %v", err)
     }
     defer file.Close()
     ```
@@ -211,20 +211,20 @@ This subtle bug occurs when you accidentally declare a *new* `err` variable insi
     // ANTI-PATTERN: Shadowing err.
     var err error
     // ... some code that might set err ...
-    
+
     // someResource is created elsewhere
     if someResource != nil {
-        // The `:=` here creates a *new* `err` scoped only to this if block.
-        // The original `err` from the outer scope is unaffected.
-        if err := someResource.Close(); err != nil { 
-            log.Printf("failed to close resource: %v", err)
-        }
+      // The `:=` here creates a *new* `err` scoped only to this if block.
+      // The original `err` from the outer scope is unaffected.
+      if err := someResource.Close(); err != nil { 
+	log.Printf("failed to close resource: %v", err)
+      }
     }
-    
+
     // If the original `err` was non-nil, this check might be skipped,
     // because the shadowed err from Close() doesn't exist here.
     if err != nil {
-        log.Fatalf("An earlier error was missed: %v", err)
+      log.Fatalf("An earlier error was missed: %v", err)
     }
     ```
 * **Best Practice:** When inside a block where `err` is already declared, use the assignment operator `=` instead of `:=` to avoid creating a new variable.
@@ -232,19 +232,19 @@ This subtle bug occurs when you accidentally declare a *new* `err` variable insi
     // GOOD: Using `=` to assign to the existing `err` variable.
     var err error
     // ... some code ...
-    
+
     // someResource is created elsewhere
     if someResource != nil {
-        // Using `=` assigns to the outer `err`.
-        if err = someResource.Close(); err != nil {
-            log.Printf("failed to close resource: %v", err)
-        }
+      // Using `=` assigns to the outer `err`.
+      if err = someResource.Close(); err != nil {
+	log.Printf("failed to close resource: %v", err)
+      }
     }
-    
+
     if err != nil {
-        // This will now correctly report any error, either from the
-        // initial operation or from the Close() call.
-        log.Fatalf("An operation failed: %v", err)
+      // This will now correctly report any error, either from the
+      // initial operation or from the Close() call.
+      log.Fatalf("An operation failed: %v", err)
     }
     ```
 
@@ -256,34 +256,34 @@ Simply returning a received error up the call stack discards valuable informatio
     ```go
     // ANTI-PATTERN: Losing context.
     func connectToDatabase() error {
-        _, err := net.Dial("tcp", "database:5432")
-        if err != nil {
-            // This just passes the generic error up. The caller won't
-            // know we were trying to connect to the database.
-            return err 
-        }
-        return nil
+      _, err := net.Dial("tcp", "database:5432")
+      if err != nil {
+	// This just passes the generic error up. The caller won't
+	// know we were trying to connect to the database.
+	return err 
+      }
+      return nil
     }
     ```
 * **Best Practice:** Use `fmt.Errorf` with the `%w` verb to **wrap** the original error. This creates a new error that includes both your custom message and the underlying error. The original error can still be inspected using `errors.Is` and `errors.As`. For multiple errors, use `errors.Join`.
     ```go
     // GOOD: Wrapping the error to add context.
     func connectToDatabase() error {
-        _, err := net.Dial("tcp", "database:5432")
-        if err != nil {
-            // The `%w` verb wraps the original error.
-            return fmt.Errorf("database connection failed: %w", err)
-        }
-        return nil
+      _, err := net.Dial("tcp", "database:5432")
+      if err != nil {
+	// The `%w` verb wraps the original error.
+	return fmt.Errorf("database connection failed: %w", err)
+      }
+      return nil
     }
-    
+
     // In the caller:
     if err := connectToDatabase(); err != nil {
-        log.Printf("Error: %v", err) // Prints "Error: database connection failed: dial tcp: lookup database: no such host"
-        // We can still inspect the underlying cause.
-        if errors.Is(err, syscall.ECONNREFUSED) {
-            // Handle specific connection refused logic.
-        }
+      log.Printf("Error: %v", err) // Prints "Error: database connection failed: dial tcp: lookup database: no such host"
+      // We can still inspect the underlying cause.
+      if errors.Is(err, syscall.ECONNREFUSED) {
+	// Handle specific connection refused logic.
+      }
     }
     ```
 
@@ -295,31 +295,31 @@ Simply returning a received error up the call stack discards valuable informatio
     ```go
     // ANTI-PATTERN: Panicking on a predictable error.
     func mustReadFile(path string) []byte {
-        data, err := os.ReadFile(path)
-        if err != nil {
-            // A missing file is often a recoverable error, not a reason to crash.
-            panic(fmt.Sprintf("failed to read file: %v", err))
-        }
-        return data
+      data, err := os.ReadFile(path)
+      if err != nil {
+	// A missing file is often a recoverable error, not a reason to crash.
+	panic(fmt.Sprintf("failed to read file: %v", err))
+      }
+      return data
     }
     ```
 * **Best Practice:** Reserve `panic` for unrecoverable errors. For most operations, return an `error`. A common exception is during program initialization (`init` functions or `main`): if a critical config file can't be loaded, panicking is often acceptable because the program cannot run correctly anyway.
     ```go
     // GOOD: Returning an error for a predictable failure.
     func readFile(path string) ([]byte, error) {
-        data, err := os.ReadFile(path)
-        if err != nil {
-            return nil, fmt.Errorf("failed to read file '%s': %w", path, err)
-        }
-        return data, nil
+      data, err := os.ReadFile(path)
+      if err != nil {
+	return nil, fmt.Errorf("failed to read file '%s': %w", path, err)
+      }
+      return data, nil
     }
-    
+
     // In main, where a crash on startup is acceptable:
     func main() {
-        data, err := readFile("critical.dat")
-        if err != nil {
-            log.Fatalf("Cannot start: %v", err) // log.Fatalf prints and exits, a controlled crash.
-        }
-        // ...
+      data, err := readFile("critical.dat")
+      if err != nil {
+	log.Fatalf("Cannot start: %v", err) // log.Fatalf prints and exits, a controlled crash.
+      }
+      // ...
     }
     ```
