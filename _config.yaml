@@ -21,8 +21,12 @@ collections:
   golang:
     output: true
     permalink: /golang/:title
+  flutter:
+    output: true
+    permalink: /flutter/:title
 
 feed:
   collections:
     - bubbletea
     - golang
+    - flutter
