@@ -3,6 +3,10 @@ languageCode = 'en-us'
 title = 'elkokito'
 theme = 'PaperMod'
 
+# Pagination settings
+[pagination]
+  pagerSize = 50  # Show 50 articles per page (default is 10)
+
 # Enable Mermaid diagrams
 [markup]
   [markup.goldmark]
@@ -29,10 +33,28 @@ theme = 'PaperMod'
   ShowBreadCrumbs = true
   ShowToc = true
   
-  # Home page settings
-  [params.homeInfoParams]
-    Title = "elkokito"
-    Content = "much wow"
+  # List view settings
+  ShowSummary = false  # Don't show article previews, just titles
+  
+  # Enable search
+  [params.fuseOpts]
+    isCaseSensitive = false
+    shouldSort = true
+    location = 0
+    distance = 1000
+    threshold = 0.4
+    minMatchCharLength = 0
+    keys = ["title", "permalink", "summary", "content"]
+  
+  # Home page settings - show recent posts with search
+  homeInfoParams = false  # Disable the info banner
+  
+  # Enable search on home page
+  [params.profileMode]
+    enabled = false
+  
+  # Show recent posts on home page
+  mainSections = ["golang", "flutter", "bubbletea"]
 
   # Custom assets
   [params.assets]
@@ -65,7 +87,7 @@ theme = 'PaperMod'
 
 # Privacy
 [privacy]
-  [privacy.twitter]
+  [privacy.x]
     enableDNT = true
   [privacy.youtube]
     privacyEnhanced = true

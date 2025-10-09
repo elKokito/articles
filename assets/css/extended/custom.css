@@ -1,6 +1,15 @@
+/* Custom Hurmit font */
+@font-face {
+  font-family: 'Hurmit';
+  src: url('/assets/fonts/HurmitNerdFont-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* Black background for everything */
 body {
   background-color: #000000 !important;
+  font-family: 'Hurmit', 'JetBrains Mono', monospace !important;
 }
 
 .main {
