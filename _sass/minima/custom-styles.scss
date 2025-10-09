@@ -11,3 +11,16 @@
 body {
   font-family: 'hurmit', Roboto, "Helvetica Neue", sans-serif;
 }
+
+// Mermaid diagram styling
+.mermaid {
+  background-color: transparent;
+  text-align: center;
+  margin: 2em 0;
+  
+  // Make diagrams responsive
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
