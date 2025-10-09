@@ -1,4 +1,4 @@
-baseURL = 'https://elkokito.github.io/articles/'
+
 languageCode = 'en-us'
 title = 'elkokito'
 theme = 'PaperMod'
@@ -59,6 +59,7 @@ theme = 'PaperMod'
   # Custom assets
   [params.assets]
     disableHLJS = false
+    customCSS = ["css/extended/custom.css"]
 
 # Menu
 [[menu.main]]

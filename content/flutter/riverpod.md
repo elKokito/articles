@@ -5,101 +5,82 @@ categories: ["flutter"]
 tags: ["flutter", "riverpod", "clean-architecture"]
 ---
 
-
-Riverpod + Clean Architecture in Flutter (3.0+)
-
 A practical, opinionated field guide with diagrams, code, and test patterns you can keep coming back to.
 
+---
+
+## Why Riverpod Fits Clean Architecture
+
+### Clean Architecture Goals
+
+-   **Separation of Concerns**: Presentation ↔ Application/Use-cases ↔ Domain ↔ Data.
+-   **Inversion of Dependencies**: Upper layers depend on abstractions, not concrete implementations.
+-   **Testability**: All components can be easily mocked or overridden.
+
+### How Riverpod Maps to These Goals
+
+-   **Providers**: Form a dependency graph, allowing you to expose abstractions (like `UserRepository`) and inject implementations at the composition root.
+-   **Notifier/AsyncNotifier**: Manage application state and orchestrate use-cases, transforming domain models into UI-ready state.
+-   **`ref` and Overrides**: Enable robust testability by allowing you to swap real repositories with fakes in tests.
+
+> **Opinionated Stance**: Prefer `AsyncNotifier` (or `Notifier`) over `StateNotifier` for screen logic, and use `AsyncValue<T>` instead of custom loading/error flags. This is the idiomatic approach in Riverpod 2.x and significantly reduces boilerplate.
 
 ---
 
-0) TL;DR (what you’ll build)
-
-A clean feature slice where the UI watches state, application logic orchestrates use-cases, and repositories abstract data sources.
-
-Riverpod is both the DI container (how things are wired) and the reactive state layer (how UI reacts to changes).
-
-We’ll use AsyncNotifier + AsyncValue (modern Riverpod) instead of hand-rolling loading/error strings; it’s clearer and harder to misuse.
-
-
-
----
-
-1) Why Riverpod fits Clean Architecture
-
-Clean Architecture goals
-
-Separation of concerns: Presentation ↔ Application/Use-cases ↔ Domain ↔ Data.
-
-Inversion of dependencies: upper layers depend on abstractions, not concrete tech.
-
-Testability: everything can be mocked/overridden.
-
-
-How Riverpod maps
-
-Providers = dependency graph. You expose abstractions (e.g., UserRepository) and inject implementations at the “edge.”
-
-Notifier/AsyncNotifier = application state + orchestration. They call use-cases, transform domain models into UI-ready state.
-
-Ref + overrides = testability. Swap out real repositories with fakes in tests or different build flavors.
-
-
-Opinionated stance: Prefer AsyncNotifier (or Notifier) over StateNotifier for screen logic; prefer AsyncValue<T> over custom loading/error flags. It’s the idiomatic Riverpod 2.x way and reduces boilerplate.
-
-
----
-
-2) High-level flow (diagram)
-
+## High-Level Flow (Diagram)
 
 ```mermaid
 ---
 config:
-  theme: neo-dark
+  theme: dark
 ---
-flowchart LR
- subgraph P["Presentation_Widgets"]
-        View["ConsumerWidget/HookConsumerWidget"]
-  end
- subgraph A["Application_State_Orchestration"]
-        VM["AsyncNotifier"]
-        UseCase["UseCase"]
-  end
- subgraph D["Domain"]
-        Entity["Entities_immutable"]
-        RepoAbstraction[("UserRepository_abstract")]
-        ValueObjects["Value_Objects"]
-  end
- subgraph I["Data_Implementations"]
-        RepoImpl[("UserRepositoryImpl")]
-        SourceDB[("SQLite/Drift_Firebase")]
-        SourceHTTP[("REST_gRPC")]
-        Cache[("Hive_SharedPrefs")]
-  end
-    View -- watch --> VM
-    VM -- calls --> UseCase
-    UseCase --> RepoAbstraction
-    RepoAbstraction -- implements --> RepoImpl
-    RepoImpl --> SourceDB & SourceHTTP & Cache & Entity
-    VM -- emits --> View
+graph TD
+    subgraph Presentation Layer
+        direction LR
+        Widget["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Widget</b><br/>(ConsumerWidget)</div>"]
+    end
 
+    subgraph Application Layer
+        direction LR
+        Notifier["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Notifier</b><br/>(AsyncNotifier)</div>"]
+        UseCase["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Use Case</b><br/>(GetUser)</div>"]
+    end
+
+    subgraph Domain Layer
+        direction LR
+        RepoAbs["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Repository</b><br/>(Abstract)</div>"]
+        Entity["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Entity</b><br/>(User)</div>"]
+    end
+
+    subgraph Data Layer
+        direction LR
+        RepoImpl["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Repository Impl</b><br/>(UserRepositoryImpl)</div>"]
+        DataSource["<div style='padding: 10px; border: 1px solid #333; border-radius: 5px;'><b>Data Source</b><br/>(Remote/Local)</div>"]
+    end
+
+    Widget -- "watches" --> Notifier
+    Notifier -- "calls" --> UseCase
+    UseCase -- "depends on" --> RepoAbs
+    RepoAbs -- "implemented by" --> RepoImpl
+    RepoImpl -- "fetches from" --> DataSource
+    DataSource -- "returns data to" --> RepoImpl
+    RepoImpl -- "returns entity to" --> UseCase
+    UseCase -- "returns entity to" --> Notifier
+    Notifier -- "emits state to" --> Widget
+    Entity -- "used by" --> RepoAbs
 ```
 
-Rules of the road
+### Rules of the Road
 
-UI never imports Data. It depends only on the VM (Notifier) state and domain/use-case contracts.
-
-Data layer implements repositories and can mix DB, HTTP, and cache.
-
-Riverpod providers tie this together and allow overrides for tests.
-
-
+-   The **UI** never imports from the **Data** layer. It only depends on the ViewModel (`Notifier`) state and domain contracts.
+-   The **Data** layer implements repositories and can be composed of databases, HTTP clients, and caches.
+-   **Riverpod providers** tie everything together and allow for easy overrides in tests.
 
 ---
 
-3) Folder structure (feature-first, scalable)
+## Folder Structure (Feature-First, Scalable)
 
+```
 lib/
   app.dart
   main.dart
@@ -116,18 +97,19 @@ lib/
       repositories/user_repository_impl.dart
       mappers/user_mapper.dart
     presentation/
-      providers/user_providers.dart        // Riverpod wiring
-      vm/user_vm.dart                      // AsyncNotifier-based VM
+      providers/user_providers.dart        # Riverpod wiring
+      vm/user_vm.dart                      # AsyncNotifier-based VM
       pages/user_page.dart
       widgets/user_header.dart
+```
 
-Opinionated stance: Organize by feature (not by layer globally). Inside each feature, keep domain/data/presentation subfolders. This scales better in real apps.
-
+> **Opinionated Stance**: Organize by feature, not by layer. Inside each feature, maintain `domain`, `data`, and `presentation` subfolders. This approach scales much better in real-world applications.
 
 ---
 
-4) Core dependencies you’ll want
+## Core Dependencies You'll Want
 
+```yaml
 # pubspec.yaml (key ones)
 dependencies:
   flutter:
@@ -145,23 +127,21 @@ dev_dependencies:
   riverpod_generator: ^2.4.0
   custom_lint: ^0.6.5
   riverpod_lint: ^2.3.9
+```
 
-Opinionated stance:
-
-Use freezed for immutable models.
-
-Use riverpod_generator to reduce boilerplate (@riverpod annotations generate providers).
-
-Add riverpod_lint early; it protects you from common mistakes.
-
-
+> **Opinionated Stance**:
+>
+> -   Use `freezed` for immutable models.
+> -   Use `riverpod_generator` to reduce boilerplate (`@riverpod` annotations generate providers automatically).
+> -   Add `riverpod_lint` early to catch common mistakes.
 
 ---
 
-5) Domain layer (pure Dart, no Flutter)
+## Domain Layer (Pure Dart, No Flutter)
 
-5.1 Entity
+### 5.1 Entity
 
+```dart
 // features/user/domain/entities/user.dart
 import 'package:freezed_annotation/freezed_annotation.dart';
 part 'user.freezed.dart';
@@ -177,9 +157,11 @@ class User with _$User {
 
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 }
+```
 
-5.2 Repository abstraction
+### 5.2 Repository Abstraction
 
+```dart
 // features/user/domain/repositories/user_repository.dart
 import 'package:riverpod/riverpod.dart';
 import '../entities/user.dart';
@@ -187,9 +169,11 @@ import '../entities/user.dart';
 abstract class UserRepository {
   Future<User> getUserById(int id);
 }
+```
 
-5.3 Use-case (optional but recommended for complex flows)
+### 5.3 Use-Case (Optional but Recommended)
 
+```dart
 // features/user/domain/usecases/get_user.dart
 import '../entities/user.dart';
 import '../repositories/user_repository.dart';
@@ -200,16 +184,17 @@ class GetUser {
 
   Future<User> call(int id) => _repo.getUserById(id);
 }
+```
 
-Why a use-case? Keeps orchestration (validation, combining repos, policies) out of the VM and makes it trivial to test.
-
+> A use-case keeps orchestration logic (like validation, combining repositories, or applying business policies) out of the ViewModel, making it highly testable.
 
 ---
 
-6) Data layer (tech details live here)
+## Data Layer (Tech Details Live Here)
 
-6.1 Remote data source (example with Dio)
+### 6.1 Remote Data Source (Example with Dio)
 
+```dart
 // features/user/data/datasources/user_remote_ds.dart
 import 'package:dio/dio.dart';
 
@@ -222,9 +207,11 @@ class UserRemoteDataSource {
     return res.data as Map<String, dynamic>;
   }
 }
+```
 
-6.2 Mapper (decouple API shape from domain)
+### 6.2 Mapper (Decouple API from Domain)
 
+```dart
 // features/user/data/mappers/user_mapper.dart
 import '../../domain/entities/user.dart';
 
@@ -237,9 +224,11 @@ class UserMapper {
     );
   }
 }
+```
 
-6.3 Repository implementation
+### 6.3 Repository Implementation
 
+```dart
 // features/user/data/repositories/user_repository_impl.dart
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/user_repository.dart';
@@ -256,14 +245,15 @@ class UserRepositoryImpl implements UserRepository {
     return UserMapper.fromJson(json);
   }
 }
-
+```
 
 ---
 
-7) Riverpod wiring (providers) + ViewModel
+## Riverpod Wiring (Providers) + ViewModel
 
-Key idea: Expose abstractions to upper layers; bind implementations near composition root or in feature providers so you can override in tests.
+> **Key Idea**: Expose abstractions to upper layers and bind implementations at the composition root. This allows you to easily override dependencies in tests.
 
+```dart
 // features/user/presentation/providers/user_providers.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -293,9 +283,11 @@ final userRepositoryProvider = Provider<UserRepository>((ref) {
 final getUserProvider = Provider<GetUser>((ref) {
   return GetUser(ref.read(userRepositoryProvider));
 });
+```
 
-7.1 ViewModel using AsyncNotifier
+### 7.1 ViewModel using `AsyncNotifier`
 
+```dart
 // features/user/presentation/vm/user_vm.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/user.dart';
@@ -321,22 +313,19 @@ class UserVM extends AsyncNotifier<User> {
 // Manual provider (no codegen)
 final userVMProvider =
     AsyncNotifierProvider<UserVM, User>(() => UserVM());
+```
 
-Why AsyncNotifier + AsyncValue<T>?
+**Why `AsyncNotifier` + `AsyncValue<T>`?**
 
-You get loading/error/data handling for free.
+-   You get loading, error, and data states for free.
+-   `AsyncValue.guard` wraps exceptions cleanly.
+-   The UI remains minimal and declarative.
 
-AsyncValue.guard wraps exceptions cleanly.
+> **Alternative (Recommended)**: Use `@riverpod` from `riverpod_generator` to auto-generate providers. This reduces boilerplate, keeps constructors private, and handles family parameters elegantly.
 
-UI stays minimal and declarative.
+### With `@riverpod` (Recommended)
 
-
-> Alternative (more advanced & less boilerplate): use @riverpod from riverpod_generator to autogenerate providers and keep constructors private. It also enables family parameters elegantly.
-
-
-
-With @riverpod (recommended):
-
+```dart
 // features/user/presentation/vm/user_vm_codegen.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/entities/user.dart';
@@ -358,14 +347,15 @@ class UserVM extends _$UserVM {
     state = await AsyncValue.guard(() => getUser(userId: userId));
   }
 }
+```
 
-Then consume with userVMProvider(userId: 42)—no manual load() needed; parameters become part of the provider key.
-
+> Now you can consume the provider with `userVMProvider(userId: 42)`, eliminating the need for a manual `load()` call.
 
 ---
 
-8) UI (presentation)
+## UI (Presentation)
 
+```dart
 // features/user/presentation/pages/user_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -414,9 +404,11 @@ class UserPage extends ConsumerWidget {
     );
   }
 }
+```
 
-App entry with ProviderScope
+### App Entry with `ProviderScope`
 
+```dart
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -425,32 +417,30 @@ import 'app.dart';
 void main() {
   runApp(const ProviderScope(child: MyApp()));
 }
-
-
----
-
-9) A sharper diagram (states & dependencies)
-
-[Widget]
-  └─ watch(userVMProvider(userId: 42))  ──────► gets AsyncValue<User>
-       └─ userVM (AsyncNotifier)
-            ├─ ref.read(getUserProvider) ─────► GetUser(use-case)
-            │       └─ ref.read(userRepositoryProvider) ───► UserRepository (abstract)
-            │               └─ UserRepositoryImpl (data)
-            │                     └─ UserRemoteDataSource(Dio)
-            │                          └─ REST/DB
-            └─ emits AsyncValue<User> back to widget
-
+```
 
 ---
 
-10) Error handling & retries (clean patterns)
+## A Sharper Diagram (States & Dependencies)
 
-Prefer AsyncValue.guard to wrap exceptions.
+```mermaid
+graph TD
+    A["watch(userVMProvider)"] -- "gets AsyncValue&#60;User&#62;" --> B["userVM (AsyncNotifier)"]
+    B -- "ref.read(getUserProvider)" --> C["GetUser"]
+    C -- "ref.read(userRepositoryProvider)" --> D["UserRepository (abstract)"]
+    D -- "implemented by" --> E["UserRepositoryImpl"]
+    E -- "uses" --> F["UserRemoteDataSource"]
+    B -- "emits AsyncValue&#60;User&#62;" --> A
+```
 
-Centralize error translation: convert low-level Dio/SQLite errors into domain-level Failure types (optional but clean).
+---
 
+## Error Handling & Retries (Clean Patterns)
 
+-   Prefer `AsyncValue.guard` to wrap exceptions.
+-   Centralize error translation by converting low-level errors (like from Dio or SQLite) into domain-level `Failure` types.
+
+```dart
 // core/error/failure.dart
 sealed class Failure {
   final String message;
@@ -458,16 +448,17 @@ sealed class Failure {
 }
 class NetworkFailure extends Failure { const NetworkFailure(String m): super(m); }
 class NotFoundFailure extends Failure { const NotFoundFailure(): super('Not found'); }
+```
 
-You can return Either<Failure, T> (with fpdart) from repositories to avoid throwing.
-
+> You can also return `Either<Failure, T>` (from a package like `fpdart`) from your repositories to avoid throwing exceptions altogether.
 
 ---
 
-11) Testing (why Riverpod shines)
+## Testing (Why Riverpod Shines)
 
-Override providers in tests to inject fakes.
+Override providers in your tests to inject fakes.
 
+```dart
 // test/user_vm_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -500,72 +491,55 @@ void main() {
     container.dispose();
   });
 }
-
-
----
-
-12) Database choices & wiring
-
-SQLite/Drift: local offline-first, SQL safety, migrations.
-
-Firebase/Firestore: real-time sync, simple auth coupling, no SQL.
-
-REST + Cache: typical for existing backends.
-
-Riverpod doesn’t care; only your repository implementation changes.
-
-
-Tip: If you need streams (e.g., Firestore snapshots), prefer StreamProvider for read-only flows, or wrap inside AsyncNotifier and emit with for await.
-
+```
 
 ---
 
-13) Performance & lifecycle tips
+## Database Choices & Wiring
 
-Use ref.watch in widgets only for what must trigger rebuilds. Use ref.read for one-off calls (e.g., button handlers).
+-   **SQLite/Drift**: For local, offline-first data with SQL safety and migrations.
+-   **Firebase/Firestore**: For real-time data synchronization and simple authentication.
+-   **REST + Cache**: The typical choice for existing backends.
 
-Use families (@riverpod with parameters) for per-id caching/scoping.
+> Riverpod is agnostic to your data source; only your repository implementation needs to change.
 
-Use ref.keepAlive() inside notifiers if you want them to survive off-screen.
-
-Use ref.onDispose to close streams/controllers.
-
-Add riverpod_devtools in debug for time-travel & dependency graph.
-
-
+**Tip**: For streams (like Firestore snapshots), prefer `StreamProvider` for read-only flows, or wrap them inside an `AsyncNotifier` and emit values using `for await`.
 
 ---
 
-14) Common pitfalls
+## Performance & Lifecycle Tips
 
-Putting HTTP/DB code in the Notifier. Keep I/O in repositories; VM orchestrates only.
-
-Returning strings as state. Use AsyncValue<T> or a sealed view state (e.g., Freezed union) for complex UIs.
-
-Skipping codegen. You can go manual, but @riverpod reduces mistakes and clarifies intent.
-
-
+-   Use `ref.watch` in widgets only for what must trigger rebuilds. Use `ref.read` for one-off calls (e.g., in button handlers).
+-   Use families (`@riverpod` with parameters) for per-ID caching and scoping.
+-   Use `ref.keepAlive()` inside notifiers to keep them alive when off-screen.
+-   Use `ref.onDispose` to close streams or controllers.
+-   Add `riverpod_devtools` in debug builds for time-travel debugging and a dependency graph visualizer.
 
 ---
 
-15) Alternative approaches (and when to pick them)
+## Common Pitfalls
 
-Bloc/Cubit: Mature, verbose, very explicit. Great for teams already standardized on Bloc.
-
-GetIt + Riverpod: Use GetIt purely for DI and Riverpod for state—but Riverpod already is a DI container; I don’t recommend doubling up.
-
-Provider (the older one): Fine for tiny apps; Riverpod is the spiritual successor—safer and more flexible.
-
-
-My take: For new Flutter 3+ apps aiming at Clean Architecture, Riverpod 2.x + codegen + AsyncNotifier is the current standard, balancing clarity, safety, and ergonomics.
-
+-   **Putting I/O in Notifiers**: Keep HTTP/DB code in repositories; ViewModels should only orchestrate.
+-   **Returning Strings as State**: Use `AsyncValue<T>` or a sealed view state (e.g., a Freezed union) for complex UI states.
+-   **Skipping Codegen**: While you can write providers manually, `@riverpod` reduces mistakes and clarifies intent.
 
 ---
 
-16) Copy-paste starters
+## Alternative Approaches (And When to Pick Them)
 
-16.1 Minimal main.dart
+-   **Bloc/Cubit**: Mature, verbose, and very explicit. A great choice for teams already standardized on Bloc.
+-   **GetIt + Riverpod**: You can use GetIt for DI and Riverpod for state, but since Riverpod is already a DI container, this is often redundant.
+-   **Provider**: Fine for small apps, but Riverpod is its safer, more flexible successor.
 
+> **My Take**: For new Flutter 3+ apps using Clean Architecture, Riverpod 2.x with codegen and `AsyncNotifier` is the current standard, offering a great balance of clarity, safety, and ergonomics.
+
+---
+
+## Copy-Paste Starters
+
+### 16.1 Minimal `main.dart`
+
+```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/user/presentation/pages/user_page.dart';
@@ -582,9 +556,11 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+```
 
-16.2 Replace manual VM with codegen family (recommended)
+### 16.2 Replace Manual VM with Codegen Family (Recommended)
 
+```dart
 // features/user/presentation/vm/user_vm_codegen.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../domain/entities/user.dart';
@@ -606,74 +582,60 @@ class UserVM extends _$UserVM {
     state = await AsyncValue.guard(() => getUser(userId));
   }
 }
+```
 
-Consume:
+**Consume:**
 
+```dart
 // inside UserPage ConsumerWidget
 final userAsync = ref.watch(userVMProvider(userId: userId));
-
-
----
-
-17) “How do I connect to the DB?”
-
-Implement a datasource that speaks to your DB/HTTP (Drift DAO, Firestore collection, REST client).
-
-Implement a repository that composes those datasources, applies mapping and policies.
-
-Provide that repository via Riverpod (Provider<UserRepository>).
-
-The VM/use-case only depends on the repository abstraction. No DB code appears above data layer. Done.
-
-
+```
 
 ---
 
-18) A compact “one-pager” diagram you can screenshot
+## "How Do I Connect to the DB?"
 
-UI (ConsumerWidget)
-  watches: userVMProvider(userId)
-  renders: AsyncValue<User> => loading/error/data
-  triggers: ref.read(userVMProvider(userId).notifier).refresh()
-
-VM (AsyncNotifier<User>)
-  depends on: GetUser use-case via ref.read(getUserProvider)
-  logic: state = AsyncLoading() -> guard(() => getUser(userId))
-
-UseCase (GetUser)
-  depends on: UserRepository (abstract)
-  logic: validation/combination/policies, then repo.getUserById(id)
-
-Repository (abstract)
-  contract: Future<User> getUserById(int id)
-
-RepositoryImpl (data)
-  uses: UserRemoteDataSource (Dio/HTTP) + mappers
-  returns: Domain User
-
-DataSource(s)
-  raw IO: REST/DB/Cache
-
+1.  **Implement a data source** that communicates with your database or HTTP client (e.g., a Drift DAO, a Firestore collection, or a REST client).
+2.  **Implement a repository** that composes these data sources, applies mappers, and enforces business policies.
+3.  **Provide the repository** via Riverpod (e.g., `Provider<UserRepository>`).
+4.  Your ViewModel/use-case will only depend on the repository abstraction. No database code ever appears above the data layer.
 
 ---
 
-19) Next steps for your project
+## A Compact "One-Pager" Diagram You Can Screenshot
 
-1. Add riverpod_generator and convert your screen VMs to @riverpod families.
+```mermaid
+graph TD
+    subgraph UI
+        A["ConsumerWidget<br/>watches: userVMProvider(userId)<br/>renders: AsyncValue&lt;User&gt;<br/>triggers: ref.read(...).refresh()"]
+    end
+    subgraph ViewModel
+        B["AsyncNotifier<br/>depends on: GetUser use-case<br/>logic: guard(() => getUser(userId))"]
+    end
+    subgraph UseCase
+        C["GetUser<br/>depends on: UserRepository (abstract)<br/>logic: repo.getUserById(id)"]
+    end
+    subgraph Repository
+        D["UserRepositoryImpl<br/>uses: UserRemoteDataSource<br/>returns: Domain User"]
+    end
+    subgraph DataSource
+        E["DataSource<br/>raw IO: REST/DB/Cache"]
+    end
 
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+```
 
-2. Adopt AsyncValue<T> consistently for screens that hit I/O.
+---
 
+## Next Steps for Your Project
 
-3. Introduce freezed entities and (if needed) sealed ViewState when screens get more complex than “one model.”
+1.  **Add `riverpod_generator`** and convert your ViewModels to `@riverpod` families.
+2.  **Adopt `AsyncValue<T>`** consistently for all screens that perform I/O operations.
+3.  **Introduce `freezed` entities** and, if needed, sealed `ViewState` classes for complex UI states.
+4.  **Write an end-to-end test** that overrides a repository provider and asserts the ViewModel's state transitions.
+5.  **Pick your data technology** (Drift, Firebase, or REST) and implement the repository behind the abstraction.
 
-
-4. Write one end-to-end test that overrides the repo provider and asserts the VM state transitions.
-
-
-5. Pick your data tech (Drift/Firebase/REST) and implement the repository impl behind the abstraction.
-
-
-
-If you paste a specific feature (e.g., “Products” or “Auth”), I’ll scaffold the full slice—entities, use-cases, repository, providers, VM, page, tests—tailored to your stack (SQLite vs Firebase, etc.).
-
+> If you paste a specific feature (e.g., "Products" or "Auth"), I can scaffold the full slice for you—entities, use-cases, repository, providers, VM, page, and tests—tailored to your stack.
