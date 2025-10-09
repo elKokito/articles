@@ -1,0 +1,50 @@
+/* Black background for everything */
+body {
+  background-color: #000000 !important;
+}
+
+.main {
+  background-color: #000000 !important;
+}
+
+article {
+  background-color: #000000 !important;
+}
+
+.post-content {
+  background-color: #000000 !important;
+  color: #E1E1E1 !important;
+}
+
+/* Wider content area - use 80% of screen */
+.main {
+  max-width: 80% !important;
+}
+
+.post-content {
+  max-width: 100% !important;
+}
+
+/* Mermaid diagram styling */
+.mermaid {
+  background-color: transparent;
+  text-align: center;
+  margin: 2em 0;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fix any layout issues */
+.post-content {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* Code block improvements */
+pre {
+  overflow-x: auto;
+}
+
