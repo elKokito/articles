@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/articles/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=articles/livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>sqlite and sqlc | elkokito</title>
+<meta name="keywords" content="golang, sqlite, sqlc">
+<meta name="description" content="The Pragmatic Trio: Building Robust Go Applications with sqlc and SQLite
+In the world of software engineering, especially for those of us who have been navigating the ever-shifting tides of technology for a decade or more, there&rsquo;s a growing appreciation for simplicity, robustness, and maintainability. The pendulum is swinging back from monolithic, &ldquo;do-everything&rdquo; frameworks and ORMs towards a more considered, pragmatic approach. This article is a deep dive into one such pragmatic stack for Go developers: the combination of Go, the type-safe SQL generator sqlc, and the surprisingly powerful SQLite database.">
+<meta name="author" content="elkokito">
+<link rel="canonical" href="http://localhost:1313/articles/golang/sqlite/">
+<link crossorigin="anonymous" href="/articles/assets/css/stylesheet.a090830a421002426baafbd314e38f149d77b4c48a12ee9312700d770b27fb26.css" integrity="sha256-oJCDCkIQAkJrqvvTFOOPFJ13tMSKEu6TEnANdwsn&#43;yY=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/articles/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/articles/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/articles/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/articles/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/articles/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/articles/golang/sqlite/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ 
+    startOnLoad: true,
+    theme: 'dark'
+  });
+</script>
+
+
+</head>
+
+<body class=" dark" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/articles/" accesskey="h" title="elkokito (Alt + H)">elkokito</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/articles/golang/" title="Golang">
+                    <span>Golang</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/flutter/" title="Flutter">
+                    <span>Flutter</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/bubbletea/" title="Bubble Tea">
+                    <span>Bubble Tea</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/articles/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/articles/golang/">Golangs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      sqlite and sqlc
+    </h1>
+    <div class="post-meta"><span title='2025-07-11 00:00:00 +0000 UTC'>July 11, 2025</span>&nbsp;·&nbsp;<span>10 min</span>&nbsp;·&nbsp;<span>elkokito</span>
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#the-pragmatic-trio-building-robust-go-applications-with-sqlc-and-sqlite" aria-label="The Pragmatic Trio: Building Robust Go Applications with sqlc and SQLite">The Pragmatic Trio: Building Robust Go Applications with sqlc and SQLite</a><ul>
+                        
+                <li>
+                    <a href="#part-1-the-philosophy---why-this-stack" aria-label="Part 1: The Philosophy - Why This Stack?">Part 1: The Philosophy - Why This Stack?</a><ul>
+                        
+                <li>
+                    <a href="#the-modern-database-landscape-in-go" aria-label="The Modern Database Landscape in Go">The Modern Database Landscape in Go</a></li>
+                <li>
+                    <a href="#the-resurgence-of-simplicity-sqlites-renaissance" aria-label="The Resurgence of Simplicity: SQLite&rsquo;s Renaissance">The Resurgence of Simplicity: SQLite&rsquo;s Renaissance</a></li>
+                <li>
+                    <a href="#the-orm-dilemma-and-the-trouble-with-manual-sql" aria-label="The ORM Dilemma and the Trouble with Manual SQL">The ORM Dilemma and the Trouble with Manual SQL</a></li>
+                <li>
+                    <a href="#sqlc-the-goldilocks-solution" aria-label="sqlc: The &ldquo;Goldilocks&rdquo; Solution">sqlc: The &ldquo;Goldilocks&rdquo; Solution</a></li></ul>
+                </li>
+                <li>
+                    <a href="#part-2-a-deeper-look-at-sqlite---the-unsung-hero" aria-label="Part 2: A Deeper Look at SQLite - The Unsung Hero">Part 2: A Deeper Look at SQLite - The Unsung Hero</a><ul>
+                        
+                <li>
+                    <a href="#beyond-the-toy-database-production-ready-sqlite" aria-label="Beyond the &ldquo;Toy Database&rdquo;: Production-Ready SQLite">Beyond the &ldquo;Toy Database&rdquo;: Production-Ready SQLite</a></li>
+                <li>
+                    <a href="#fine-tuning-performance-with-pragma-statements" aria-label="Fine-Tuning Performance with PRAGMA Statements">Fine-Tuning Performance with PRAGMA Statements</a></li>
+                <li>
+                    <a href="#advanced-features-for-modern-applications" aria-label="Advanced Features for Modern Applications">Advanced Features for Modern Applications</a></li>
+                <li>
+                    <a href="#choosing-the-right-go-driver" aria-label="Choosing the Right Go Driver">Choosing the Right Go Driver</a></li></ul>
+                </li>
+                <li>
+                    <a href="#part-3-mastering-sqlc---type-safe-sql-in-go" aria-label="Part 3: Mastering sqlc - Type-Safe SQL in Go">Part 3: Mastering sqlc - Type-Safe SQL in Go</a><ul>
+                        
+                <li>
+                    <a href="#the-sqlc-workflow" aria-label="The sqlc Workflow">The sqlc Workflow</a></li>
+                <li>
+                    <a href="#a-closer-look-at-sqlcyaml" aria-label="A Closer Look at sqlc.yaml">A Closer Look at sqlc.yaml</a></li>
+                <li>
+                    <a href="#writing-effective-sqlc-queries" aria-label="Writing Effective sqlc Queries">Writing Effective sqlc Queries</a></li>
+                <li>
+                    <a href="#handling-transactions" aria-label="Handling Transactions">Handling Transactions</a></li></ul>
+                </li>
+                <li>
+                    <a href="#part-4-project-structure-and-architecture" aria-label="Part 4: Project Structure and Architecture">Part 4: Project Structure and Architecture</a><ul>
+                        
+                <li>
+                    <a href="#project-directory-layout" aria-label="Project Directory Layout">Project Directory Layout</a></li>
+                <li>
+                    <a href="#architectural-diagrams" aria-label="Architectural Diagrams">Architectural Diagrams</a><ul>
+                        
+                <li>
+                    <a href="#build-time-architecture" aria-label="Build-Time Architecture">Build-Time Architecture</a></li>
+                <li>
+                    <a href="#runtime-architecture" aria-label="Runtime Architecture">Runtime Architecture</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#part-5-the-complete-code-example" aria-label="Part 5: The Complete Code Example">Part 5: The Complete Code Example</a></li>
+                <li>
+                    <a href="#part-6-advanced-topics-and-production-considerations" aria-label="Part 6: Advanced Topics and Production Considerations">Part 6: Advanced Topics and Production Considerations</a><ul>
+                        
+                <li>
+                    <a href="#testing-strategy" aria-label="Testing Strategy">Testing Strategy</a></li>
+                <li>
+                    <a href="#concurrency-revisited" aria-label="Concurrency Revisited">Concurrency Revisited</a></li>
+                <li>
+                    <a href="#database-migrations" aria-label="Database Migrations">Database Migrations</a></li>
+                <li>
+                    <a href="#embedding-the-database" aria-label="Embedding the Database">Embedding the Database</a></li></ul>
+                </li>
+                <li>
+                    <a href="#part-7-conclusion---the-power-of-pragmatism" aria-label="Part 7: Conclusion - The Power of Pragmatism">Part 7: Conclusion - The Power of Pragmatism</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="the-pragmatic-trio-building-robust-go-applications-with-sqlc-and-sqlite">The Pragmatic Trio: Building Robust Go Applications with sqlc and SQLite<a hidden class="anchor" aria-hidden="true" href="#the-pragmatic-trio-building-robust-go-applications-with-sqlc-and-sqlite">#</a></h1>
+<p>In the world of software engineering, especially for those of us who have been navigating the ever-shifting tides of technology for a decade or more, there&rsquo;s a growing appreciation for simplicity, robustness, and maintainability. The pendulum is swinging back from monolithic, &ldquo;do-everything&rdquo; frameworks and ORMs towards a more considered, pragmatic approach. This article is a deep dive into one such pragmatic stack for Go developers: the combination of <strong>Go</strong>, the type-safe SQL generator <strong>sqlc</strong>, and the surprisingly powerful <strong>SQLite</strong> database.</p>
+<p>This isn&rsquo;t a beginner&rsquo;s guide. This is a comprehensive exploration for experienced Go engineers who are already comfortable with the language but are looking for better ways to build data-centric applications. We&rsquo;ll dissect the <em>why</em> behind this stack, explore advanced features, design a production-ready project structure, and walk through a complete implementation, all while keeping an eye on the nuances of performance, testing, and long-term maintenance.</p>
+<hr>
+<h2 id="part-1-the-philosophy---why-this-stack">Part 1: The Philosophy - Why This Stack?<a hidden class="anchor" aria-hidden="true" href="#part-1-the-philosophy---why-this-stack">#</a></h2>
+<p>Before we dive into the technical intricacies, it&rsquo;s crucial to understand the philosophy that makes this combination so compelling for modern application development.</p>
+<h3 id="the-modern-database-landscape-in-go">The Modern Database Landscape in Go<a hidden class="anchor" aria-hidden="true" href="#the-modern-database-landscape-in-go">#</a></h3>
+<p>For years, the choice of a database in Go applications often felt like a binary decision: a full-fledged, network-attached SQL database like PostgreSQL or MySQL, or a NoSQL solution like MongoDB. The former brings with it the power and familiarity of SQL, but also the operational overhead of managing a separate server. The latter offers flexibility but often at the cost of transactional integrity and a well-defined schema.</p>
+<h3 id="the-resurgence-of-simplicity-sqlites-renaissance">The Resurgence of Simplicity: SQLite&rsquo;s Renaissance<a hidden class="anchor" aria-hidden="true" href="#the-resurgence-of-simplicity-sqlites-renaissance">#</a></h3>
+<p>SQLite has long been relegated to the status of a &ldquo;toy database,&rdquo; suitable for mobile apps or simple, single-user desktop applications. However, this perception is woefully outdated. With the advent of <strong>Write-Ahead Logging (WAL) mode</strong>, SQLite has become a highly concurrent and performant database for a vast array of applications, particularly those with high read volumes. Its primary advantage is its operational simplicity: the database is just a file. There are no separate processes to manage, no complex authentication to configure, and no network latency to contend with. For many applications, this is a game-changer.</p>
+<h3 id="the-orm-dilemma-and-the-trouble-with-manual-sql">The ORM Dilemma and the Trouble with Manual SQL<a hidden class="anchor" aria-hidden="true" href="#the-orm-dilemma-and-the-trouble-with-manual-sql">#</a></h3>
+<p>In the Go ecosystem, interacting with SQL databases has traditionally presented two less-than-ideal options:</p>
+<ol>
+<li><strong>Object-Relational Mappers (ORMs):</strong> While ORMs like GORM can speed up initial development, they often introduce a layer of abstraction that can be leaky and inefficient. For experienced engineers, the &ldquo;magic&rdquo; of an ORM can quickly become a hindrance when trying to optimize complex queries or understand the exact SQL being executed.</li>
+<li><strong>Manual SQL with <code>database/sql</code>:</strong> Writing SQL by hand and manually scanning results into Go structs using the standard <code>database/sql</code> package provides maximum control and performance. However, it&rsquo;s a boilerplate-heavy and error-prone process. A typo in a column name or a mismatch between your Go struct and your database schema is only caught at runtime, often in production.</li>
+</ol>
+<h3 id="sqlc-the-goldilocks-solution">sqlc: The &ldquo;Goldilocks&rdquo; Solution<a hidden class="anchor" aria-hidden="true" href="#sqlc-the-goldilocks-solution">#</a></h3>
+<p>This is where <strong>sqlc</strong> enters the picture. It&rsquo;s not an ORM. It doesn&rsquo;t try to hide SQL from you. Instead, it embraces it. The core idea is simple yet powerful:</p>
+<ol>
+<li>You write your SQL queries in <code>.sql</code> files.</li>
+<li>You run the <code>sqlc</code> command-line tool.</li>
+<li><code>sqlc</code> generates type-safe, idiomatic Go code that directly executes your queries and handles all the tedious boilerplate of scanning results into your Go structs.</li>
+</ol>
+<p>This approach gives you the best of both worlds: the performance and control of raw SQL and the type safety of a compiled language.</p>
+<hr>
+<h2 id="part-2-a-deeper-look-at-sqlite---the-unsung-hero">Part 2: A Deeper Look at SQLite - The Unsung Hero<a hidden class="anchor" aria-hidden="true" href="#part-2-a-deeper-look-at-sqlite---the-unsung-hero">#</a></h2>
+<p>For many experienced engineers, the idea of using SQLite in a production web service might initially seem counterintuitive. Let&rsquo;s dispel some common myths and explore the advanced features that make it a formidable choice.</p>
+<h3 id="beyond-the-toy-database-production-ready-sqlite">Beyond the &ldquo;Toy Database&rdquo;: Production-Ready SQLite<a hidden class="anchor" aria-hidden="true" href="#beyond-the-toy-database-production-ready-sqlite">#</a></h3>
+<p>The key to unlocking SQLite&rsquo;s potential for concurrent applications is the <strong>Write-Ahead Logging (WAL)</strong> mode. In the default journal mode, writers block readers and readers block writers. In WAL mode, readers don&rsquo;t block writers, and a single writer doesn&rsquo;t block readers. This allows for a high degree of concurrency, especially in read-heavy workloads, which is a common pattern for many web applications.</p>
+<h3 id="fine-tuning-performance-with-pragma-statements">Fine-Tuning Performance with PRAGMA Statements<a hidden class="anchor" aria-hidden="true" href="#fine-tuning-performance-with-pragma-statements">#</a></h3>
+<p>SQLite&rsquo;s behavior can be significantly customized using <code>PRAGMA</code> statements. For a production Go application, you&rsquo;ll almost always want to set the following:</p>
+<ul>
+<li><code>PRAGMA journal_mode=WAL;</code>: Enables Write-Ahead Logging for improved concurrency.</li>
+<li><code>PRAGMA busy_timeout=5000;</code>: Instructs SQLite to wait for up to 5 seconds if the database is locked by another process, which can be useful in highly concurrent scenarios.</li>
+<li><code>PRAGMA synchronous=NORMAL;</code>: In WAL mode, <code>NORMAL</code> is a safe and performant option. It ensures that writes are fsynced at checkpoints, providing a good balance between speed and durability.</li>
+<li><code>PRAGMA foreign_keys=ON;</code>: Enforces foreign key constraints, which is crucial for data integrity.</li>
+</ul>
+<h3 id="advanced-features-for-modern-applications">Advanced Features for Modern Applications<a hidden class="anchor" aria-hidden="true" href="#advanced-features-for-modern-applications">#</a></h3>
+<p>Modern SQLite is packed with features that rival its larger, network-attached counterparts:</p>
+<ul>
+<li><strong>JSON1 Extension:</strong> Full support for JSON data types and functions, allowing you to store and query schemaless data within your relational database.</li>
+<li><strong>Full-Text Search (FTS5):</strong> A powerful and fast full-text search engine built directly into the database.</li>
+<li><strong>Window Functions and Common Table Expressions (CTEs):</strong> Support for advanced SQL constructs, enabling complex analytical queries.</li>
+</ul>
+<h3 id="choosing-the-right-go-driver">Choosing the Right Go Driver<a hidden class="anchor" aria-hidden="true" href="#choosing-the-right-go-driver">#</a></h3>
+<p>There are two primary Go drivers for SQLite:</p>
+<ol>
+<li><code>github.com/mattn/go-sqlite3</code>: The most popular and feature-rich driver. It uses cgo to link against the C SQLite library.</li>
+<li><code>modernc.org/sqlite</code>: A pure Go implementation of SQLite. It&rsquo;s an excellent choice if you want to avoid cgo and produce completely static binaries.</li>
+</ol>
+<p>For this article, we&rsquo;ll use <code>mattn/go-sqlite3</code> due to its widespread adoption and extensive feature set.</p>
+<hr>
+<h2 id="part-3-mastering-sqlc---type-safe-sql-in-go">Part 3: Mastering sqlc - Type-Safe SQL in Go<a hidden class="anchor" aria-hidden="true" href="#part-3-mastering-sqlc---type-safe-sql-in-go">#</a></h2>
+<p><code>sqlc</code>&rsquo;s philosophy is to keep SQL as the source of truth. You write standard SQL, and <code>sqlc</code> generates the Go code to interact with it. This has several key advantages:</p>
+<ul>
+<li><strong>Your SQL is portable:</strong> You can take your <code>.sql</code> files and use them with any tool that understands SQL.</li>
+<li><strong>DBAs can read and optimize your queries:</strong> There&rsquo;s no ORM-specific syntax to learn.</li>
+<li><strong>You get compile-time safety:</strong> If you change your schema and forget to update a query, <code>sqlc</code> will fail to generate code, preventing runtime errors.</li>
+</ul>
+<h3 id="the-sqlc-workflow">The sqlc Workflow<a hidden class="anchor" aria-hidden="true" href="#the-sqlc-workflow">#</a></h3>
+<p>The development loop with <code>sqlc</code> is straightforward:</p>
+<ol>
+<li><strong>Define your schema:</strong> Create a <code>schema.sql</code> file with your <code>CREATE TABLE</code> statements.</li>
+<li><strong>Write your queries:</strong> Create a <code>queries.sql</code> file with your <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code>, and <code>DELETE</code> statements, annotated with special comments.</li>
+<li><strong>Configure <code>sqlc.yaml</code>:</strong> Create a configuration file to tell <code>sqlc</code> where to find your schema and queries and where to put the generated Go code.</li>
+<li><strong>Run <code>sqlc generate</code>:</strong> This command will read your SQL files and generate the corresponding Go code.</li>
+</ol>
+<h3 id="a-closer-look-at-sqlcyaml">A Closer Look at <code>sqlc.yaml</code><a hidden class="anchor" aria-hidden="true" href="#a-closer-look-at-sqlcyaml">#</a></h3>
+<p>The <code>sqlc.yaml</code> file is the heart of your <code>sqlc</code> configuration. A typical configuration for a Go project looks like this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;2&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">sql</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">engine</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;sqlite&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">schema</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;internal/data/schema.sql&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">queries</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;internal/data/queries.sql&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">gen</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">go</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">package</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;db&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">out</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;internal/data/db&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">sql_package</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;database/sql&#34;</span><span class="w">
+</span></span></span></code></pre></div><h3 id="writing-effective-sqlc-queries">Writing Effective <code>sqlc</code> Queries<a hidden class="anchor" aria-hidden="true" href="#writing-effective-sqlc-queries">#</a></h3>
+<p><code>sqlc</code> uses special comments in your SQL files to understand how to generate Go code. These comments are what make <code>sqlc</code> so powerful.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="line"><span class="cl"><span class="c1">-- name: GetUserByID :one
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- name: ListUsers :many
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">name</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- name: CreateUser :exec
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="n">users</span><span class="w"> </span><span class="p">(</span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">VALUES</span><span class="w"> </span><span class="p">(</span><span class="o">?</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="p">,</span><span class="w"> </span><span class="o">?</span><span class="p">);</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- name: UpdateUser :exec
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">UPDATE</span><span class="w"> </span><span class="n">users</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">SET</span><span class="w"> </span><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">,</span><span class="w"> </span><span class="n">email</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">-- name: DeleteUser :exec
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="k">DELETE</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">users</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">WHERE</span><span class="w"> </span><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">?</span><span class="p">;</span><span class="w">
+</span></span></span></code></pre></div><p>The key components are:</p>
+<ul>
+<li><code>-- name:</code>: The name of the generated Go function.</li>
+<li><code>:one</code>: Indicates that the query returns a single row.</li>
+<li><code>:many</code>: Indicates that the query returns multiple rows.</li>
+<li><code>:exec</code>: Indicates that the query does not return any rows.</li>
+</ul>
+<h3 id="handling-transactions">Handling Transactions<a hidden class="anchor" aria-hidden="true" href="#handling-transactions">#</a></h3>
+<p><code>sqlc</code> doesn&rsquo;t provide a transaction management system out of the box. This is by design, as it allows you to use the standard <code>database/sql</code> transaction handling that you&rsquo;re already familiar with. A common pattern is to create a &ldquo;store&rdquo; that can operate on either a <code>*sql.DB</code> or a <code>*sql.Tx</code>.</p>
+<hr>
+<h2 id="part-4-project-structure-and-architecture">Part 4: Project Structure and Architecture<a hidden class="anchor" aria-hidden="true" href="#part-4-project-structure-and-architecture">#</a></h2>
+<p>A well-structured project is essential for long-term maintainability. For a Go application using <code>sqlc</code> and SQLite, a structure based on the &ldquo;Standard Go Project Layout&rdquo; is a good starting point.</p>
+<h3 id="project-directory-layout">Project Directory Layout<a hidden class="anchor" aria-hidden="true" href="#project-directory-layout">#</a></h3>
+<pre tabindex="0"><code>/
+├── cmd/
+│   └── api/
+│       └── main.go
+├── internal/
+│   ├── api/
+│   │   └── handlers.go
+│   ├── data/
+│   │   ├── db/
+│   │   │   ├── models.go
+│   │   │   └── query.sql.go
+│   │   ├── queries/
+│   │   │   └── users.sql
+│   │   ├── schema/
+│   │   │   └── 001_initial.sql
+│   │   └── store.go
+│   └── service/
+│       └── user_service.go
+├── go.mod
+├── go.sum
+├── Makefile
+└── sqlc.yaml
+</code></pre><ul>
+<li><strong><code>/cmd/api</code></strong>: The entry point for our web service.</li>
+<li><strong><code>/internal/api</code></strong>: The HTTP handlers and routing logic.</li>
+<li><strong><code>/internal/data</code></strong>: The core of our data layer.
+<ul>
+<li><strong><code>/internal/data/db</code></strong>: The <code>sqlc</code>-generated code.</li>
+<li><strong><code>/internal/data/queries</code></strong>: Our hand-written SQL queries.</li>
+<li><strong><code>/internal/data/schema</code></strong>: Our database schema migrations.</li>
+<li><strong><code>/internal/data/store.go</code></strong>: Our custom <code>Store</code> for transaction management.</li>
+</ul>
+</li>
+<li><strong><code>/internal/service</code></strong>: The business logic of our application.</li>
+<li><strong><code>Makefile</code></strong>: For automating common tasks like running <code>sqlc generate</code> and applying migrations.</li>
+</ul>
+<h3 id="architectural-diagrams">Architectural Diagrams<a hidden class="anchor" aria-hidden="true" href="#architectural-diagrams">#</a></h3>
+<h4 id="build-time-architecture">Build-Time Architecture<a hidden class="anchor" aria-hidden="true" href="#build-time-architecture">#</a></h4>
+<p>This diagram illustrates how our Go code is generated.</p>
+<pre tabindex="0"><code>+---------------------+      +----------------------+      +------------------+
+| schema/             |      | queries/             |      | sqlc.yaml        |
+| 001_initial.sql     |-----&gt;| users.sql            |-----&gt;| (configuration)  |
++---------------------+      +----------------------+      +------------------+
+      |                           |                              |
+      |                           |                              |
+      v                           v                              v
++------------------------------------------------------------------+
+|                               sqlc generate                      |
++------------------------------------------------------------------+
+      |
+      |
+      v
++---------------------+
+| db/                 |
+| models.go           |
+| query.sql.go        |
++---------------------+
+</code></pre><h4 id="runtime-architecture">Runtime Architecture<a hidden class="anchor" aria-hidden="true" href="#runtime-architecture">#</a></h4>
+<p>This diagram shows the flow of a request through our application.</p>
+<pre tabindex="0"><code>+----------+      +----------------+      +-----------------+      +-----------------+      +------------------+
+|          |      |                |      |                 |      |                 |      |                  |
+|  Client  |-----&gt;| /internal/api  |-----&gt;| /internal/service|-----&gt;| /internal/data  |-----&gt;|  SQLite Driver   |
+|          |      | (Handlers)     |      | (Business Logic)|      | (Store/sqlc)    |      | (mattn/go-sqlite3)|
++----------+      +----------------+      +-----------------+      +-----------------+      +------------------+
+                                                                                                    |
+                                                                                                    |
+                                                                                                    v
+                                                                                             +---------------+
+                                                                                             |               |
+                                                                                             |  database.db  |
+                                                                                             |               |
+                                                                                             +---------------+
+</code></pre><hr>
+<h2 id="part-5-the-complete-code-example">Part 5: The Complete Code Example<a hidden class="anchor" aria-hidden="true" href="#part-5-the-complete-code-example">#</a></h2>
+<p>Now, let&rsquo;s bring all these concepts together and build a simple user management service.</p>
+<p><em>Space for a detailed, line-by-line walkthrough of the code, including:</em></p>
+<ul>
+<li><em>Setting up the project and <code>go mod init</code>.</em></li>
+<li><em>Writing the <code>schema.sql</code> and <code>users.sql</code> files.</em></li>
+<li><em>Configuring <code>sqlc.yaml</code> and running <code>sqlc generate</code>.</em></li>
+<li><em>Implementing the <code>Store</code> for transaction management.</em></li>
+<li><em>Writing the <code>UserService</code> with business logic.</em></li>
+<li><em>Creating the HTTP handlers and wiring everything up in <code>main.go</code>.</em></li>
+</ul>
+<hr>
+<h2 id="part-6-advanced-topics-and-production-considerations">Part 6: Advanced Topics and Production Considerations<a hidden class="anchor" aria-hidden="true" href="#part-6-advanced-topics-and-production-considerations">#</a></h2>
+<p>Building an application is one thing; running it reliably in production is another. Here are some advanced topics to consider.</p>
+<h3 id="testing-strategy">Testing Strategy<a hidden class="anchor" aria-hidden="true" href="#testing-strategy">#</a></h3>
+<ul>
+<li><strong>Unit Tests:</strong> Your service layer can be unit-tested by mocking the <code>Store</code> interface. This allows you to test your business logic in isolation from the database.</li>
+<li><strong>Integration Tests:</strong> For your data layer, you should write integration tests that run against a real SQLite database. You can create a temporary, in-memory database for each test run to ensure a clean slate.</li>
+</ul>
+<h3 id="concurrency-revisited">Concurrency Revisited<a hidden class="anchor" aria-hidden="true" href="#concurrency-revisited">#</a></h3>
+<p>Even with WAL mode, there are some nuances to handling concurrency with SQLite in Go. Because SQLite allows only one writer at a time, it&rsquo;s a common practice to set <code>db.SetMaxOpenConns(1)</code>. This ensures that all write operations are serialized, preventing &ldquo;database is locked&rdquo; errors.</p>
+<h3 id="database-migrations">Database Migrations<a hidden class="anchor" aria-hidden="true" href="#database-migrations">#</a></h3>
+<p>For managing schema changes over time, a tool like <code>golang-migrate</code> is indispensable. It allows you to write versioned SQL migration files and apply them in a controlled manner.</p>
+<h3 id="embedding-the-database">Embedding the Database<a hidden class="anchor" aria-hidden="true" href="#embedding-the-database">#</a></h3>
+<p>For certain types of applications, such as command-line tools or self-contained services, you can use Go 1.16+&rsquo;s <code>embed</code> package to bundle the SQLite database file and migrations directly into your application binary. This simplifies deployment, as you only need to distribute a single file.</p>
+<hr>
+<h2 id="part-7-conclusion---the-power-of-pragmatism">Part 7: Conclusion - The Power of Pragmatism<a hidden class="anchor" aria-hidden="true" href="#part-7-conclusion---the-power-of-pragmatism">#</a></h2>
+<p>The combination of Go, sqlc, and SQLite is a testament to the power of pragmatic software engineering. It&rsquo;s a stack that prioritizes simplicity, maintainability, and developer productivity without sacrificing performance or control.</p>
+<p>Is it the right choice for every application? Of course not. For highly concurrent, write-heavy systems that require horizontal scaling, a distributed SQL database like CockroachDB or TiDB might be a better fit. But for a surprisingly large number of applications, from internal tools and CLIs to production web services with high read volumes, this trio offers a compelling and elegant solution.</p>
+<p>By embracing SQL, leveraging the power of code generation, and rediscovering the simplicity of SQLite, we can build robust, performant, and maintainable applications that will stand the test of time.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/articles/tags/golang-sqlite-sqlc/">Golang, Sqlite, Sqlc</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/articles/golang/authentication-openai/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>composition</span>
+  </a>
+  <a class="next" href="http://localhost:1313/articles/golang/sqlite-claude/">
+    <span class="title">Next »</span>
+    <br>
+    <span>sqlite and sqlc with claude</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2025 <a href="http://localhost:1313/articles/">elkokito</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

@@ -1,0 +1,71 @@
+baseURL = 'https://elkokito.github.io/articles/'
+languageCode = 'en-us'
+title = 'elkokito'
+theme = 'PaperMod'
+
+# Enable Mermaid diagrams
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    codeFences = true
+    guessSyntax = false
+    lineNos = false
+    noClasses = false
+    style = "monokai"
+
+[params]
+  description = "much wow"
+  author = "elkokito"
+  
+  # Theme settings
+  defaultTheme = "dark"
+  disableThemeToggle = false
+  ShowCodeCopyButtons = true
+  ShowReadingTime = true
+  ShowShareButtons = false
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowToc = true
+  
+  # Home page settings
+  [params.homeInfoParams]
+    Title = "elkokito"
+    Content = "much wow"
+
+  # Custom assets
+  [params.assets]
+    disableHLJS = false
+
+# Menu
+[[menu.main]]
+  name = "Golang"
+  url = "/golang/"
+  weight = 1
+
+[[menu.main]]
+  name = "Flutter"
+  url = "/flutter/"
+  weight = 2
+
+[[menu.main]]
+  name = "Bubble Tea"
+  url = "/bubbletea/"
+  weight = 3
+
+# Taxonomies
+[taxonomies]
+  category = "categories"
+  tag = "tags"
+
+# Output formats
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+
+# Privacy
+[privacy]
+  [privacy.twitter]
+    enableDNT = true
+  [privacy.youtube]
+    privacyEnhanced = true

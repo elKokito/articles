@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/articles/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=articles/livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>composition | elkokito</title>
+<meta name="keywords" content="golang">
+<meta name="description" content="Mastering Go’s Composition Model: Struct Embedding for DevOps Engineers
+In the world of DevOps, the tools we build need to be reliable, maintainable, and scalable. Whether you&rsquo;re scripting infrastructure automation, creating custom controllers for Kubernetes, or developing a new monitoring agent, the underlying structure of your code profoundly impacts its long-term success. Go, with its pragmatic design and focus on simplicity, offers a powerful alternative to traditional object-oriented paradigms: composition over inheritance, primarily achieved through a mechanism called struct embedding.">
+<meta name="author" content="elkokito">
+<link rel="canonical" href="http://localhost:1313/articles/golang/composition/">
+<link crossorigin="anonymous" href="/articles/assets/css/stylesheet.a090830a421002426baafbd314e38f149d77b4c48a12ee9312700d770b27fb26.css" integrity="sha256-oJCDCkIQAkJrqvvTFOOPFJ13tMSKEu6TEnANdwsn&#43;yY=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/articles/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/articles/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/articles/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/articles/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/articles/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/articles/golang/composition/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ 
+    startOnLoad: true,
+    theme: 'dark'
+  });
+</script>
+
+
+</head>
+
+<body class=" dark" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/articles/" accesskey="h" title="elkokito (Alt + H)">elkokito</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/articles/golang/" title="Golang">
+                    <span>Golang</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/flutter/" title="Flutter">
+                    <span>Flutter</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/bubbletea/" title="Bubble Tea">
+                    <span>Bubble Tea</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/articles/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/articles/golang/">Golangs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      composition
+    </h1>
+    <div class="post-meta"><span title='2025-06-17 00:00:00 +0000 UTC'>June 17, 2025</span>&nbsp;·&nbsp;<span>15 min</span>&nbsp;·&nbsp;<span>elkokito</span>
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#mastering-gos-composition-model-struct-embedding-for-devops-engineers" aria-label="Mastering Go’s Composition Model: Struct Embedding for DevOps Engineers">Mastering Go’s Composition Model: Struct Embedding for DevOps Engineers</a><ul>
+                        
+                <li>
+                    <a href="#executive-overview" aria-label="Executive Overview">Executive Overview</a></li>
+                <li>
+                    <a href="#deep-dive-implementation" aria-label="Deep-Dive Implementation">Deep-Dive Implementation</a><ul>
+                        
+                <li>
+                    <a href="#the-core-mechanism-more-than-just-syntax" aria-label="The Core Mechanism: More Than Just Syntax">The Core Mechanism: More Than Just Syntax</a></li>
+                <li>
+                    <a href="#how-it-differs-from-inheritance" aria-label="How It Differs from Inheritance">How It Differs from Inheritance</a></li></ul>
+                </li>
+                <li>
+                    <a href="#idiomatic-code-walk-through" aria-label="Idiomatic Code Walk-through">Idiomatic Code Walk-through</a><ul>
+                        
+                <li>
+                    <a href="#composable-worker-example" aria-label="Composable Worker Example">Composable Worker Example</a></li>
+                <li>
+                    <a href="#build-run-and-cicd-considerations" aria-label="Build, Run, and CI/CD Considerations">Build, Run, and CI/CD Considerations</a></li></ul>
+                </li>
+                <li>
+                    <a href="#gotchas--best-practices" aria-label="Gotchas &amp; Best Practices">Gotchas &amp; Best Practices</a><ul>
+                        
+                <li>
+                    <a href="#1-method-and-field-collisions" aria-label="1. Method and Field Collisions">1. Method and Field Collisions</a></li>
+                <li>
+                    <a href="#2-shadowing-embedded-fields" aria-label="2. Shadowing Embedded Fields">2. Shadowing Embedded Fields</a></li>
+                <li>
+                    <a href="#3-interface-satisfaction-and-nil-pointers" aria-label="3. Interface Satisfaction and Nil Pointers">3. Interface Satisfaction and Nil Pointers</a></li>
+                <li>
+                    <a href="#4-concurrency-and-state" aria-label="4. Concurrency and State">4. Concurrency and State</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="mastering-gos-composition-model-struct-embedding-for-devops-engineers">Mastering Go’s Composition Model: Struct Embedding for DevOps Engineers<a hidden class="anchor" aria-hidden="true" href="#mastering-gos-composition-model-struct-embedding-for-devops-engineers">#</a></h1>
+<p>In the world of DevOps, the tools we build need to be reliable, maintainable, and scalable. Whether you&rsquo;re scripting infrastructure automation, creating custom controllers for Kubernetes, or developing a new monitoring agent, the underlying structure of your code profoundly impacts its long-term success. Go, with its pragmatic design and focus on simplicity, offers a powerful alternative to traditional object-oriented paradigms: <strong>composition over inheritance</strong>, primarily achieved through a mechanism called <strong>struct embedding</strong>.</p>
+<p>This article is designed for DevOps engineers who are comfortable with at least one programming language like Python or Java but are looking to deepen their Go expertise. We&rsquo;ll explore why Go deliberately omits classical inheritance and how struct embedding provides a more flexible and robust way to build complex systems. By the end, you&rsquo;ll not only understand the theory but will be equipped to use this pattern idiomatically in your own Go applications, avoiding common pitfalls and writing code that is both efficient and easy to reason about.</p>
+<hr>
+<h2 id="executive-overview">Executive Overview<a hidden class="anchor" aria-hidden="true" href="#executive-overview">#</a></h2>
+<p>Go&rsquo;s design philosophy famously sidesteps the complexities of classical inheritance—a concept deeply ingrained in languages like Java, C++, and Python. Instead of creating rigid parent-child relationships between types, Go champions composition, a design pattern where complex types are built by combining smaller, independent, and focused types. The primary tool for this in Go is <strong>struct embedding</strong>.</p>
+<p>At its core, struct embedding is the inclusion of one struct type directly into another. When a struct is embedded, its fields and methods are &ldquo;promoted&rdquo; to the containing struct, becoming directly accessible as if they were declared on the outer struct itself. This isn&rsquo;t a magical copy-paste of code; it&rsquo;s a compile-time feature that instructs the compiler to generate wrapper methods and provide direct access to the embedded struct&rsquo;s fields. The result is a powerful form of code reuse that avoids the &ldquo;is-a&rdquo; relationship of inheritance in favor of a more flexible &ldquo;has-a&rdquo; relationship.</p>
+<p>For a DevOps engineer, this pattern is invaluable. Imagine building a set of tools for interacting with different cloud providers. Instead of a deep inheritance hierarchy (<code>BaseProvider</code> -&gt; <code>AWSProvider</code> -&gt; <code>S3Manager</code>), you can compose functionality. A generic <code>APILimiter</code> struct, which handles rate-limiting logic, can be embedded into an <code>AWSClient</code> and a <code>GoogleCloudClient</code> alike. Both clients gain rate-limiting capabilities without being forced into a shared ancestral tree. This approach leads to flatter, more modular designs that are easier to test, refactor, and extend. It allows you to mix and match functionalities like LEGO bricks, building precisely the behavior you need without the baggage of an extensive class hierarchy.</p>
+<hr>
+<h2 id="deep-dive-implementation">Deep-Dive Implementation<a hidden class="anchor" aria-hidden="true" href="#deep-dive-implementation">#</a></h2>
+<p>To truly grasp the power of struct embedding, we need to look beyond the surface-level syntax and understand its mechanics, how the Go runtime handles it, and how it fundamentally differs from the inheritance models you might be used to.</p>
+<h3 id="the-core-mechanism-more-than-just-syntax">The Core Mechanism: More Than Just Syntax<a hidden class="anchor" aria-hidden="true" href="#the-core-mechanism-more-than-just-syntax">#</a></h3>
+<p>In Go, you embed a struct by declaring a field with the type name only, without a field name.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Engine</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Horsepower</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">FuelType</span><span class="w">   </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">e</span><span class="w"> </span><span class="o">*</span><span class="nx">Engine</span><span class="p">)</span><span class="w"> </span><span class="nf">Start</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Engine started.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Car</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Engine</span><span class="w"> </span><span class="c1">// Embedded struct - no field name</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Make</span><span class="w">   </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Model</span><span class="w">  </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>Here, the <code>Car</code> struct embeds the <code>Engine</code> struct. Because <code>Engine</code> was declared without a field name, its fields (<code>Horsepower</code>, <code>FuelType</code>) and methods (<code>Start</code>) are <strong>promoted</strong>. This means you can access them directly on an instance of <code>Car</code>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">myCar</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">Car</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Engine</span><span class="p">:</span><span class="w"> </span><span class="nx">Engine</span><span class="p">{</span><span class="nx">Horsepower</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span><span class="p">,</span><span class="w"> </span><span class="nx">FuelType</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;Gasoline&#34;</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Make</span><span class="p">:</span><span class="w">   </span><span class="s">&#34;Ford&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Model</span><span class="p">:</span><span class="w">  </span><span class="s">&#34;Mustang&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">myCar</span><span class="p">.</span><span class="nx">Horsepower</span><span class="p">)</span><span class="w"> </span><span class="c1">// Direct access to embedded field</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">myCar</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span><span class="w">               </span><span class="c1">// Direct call to embedded method</span><span class="w">
+</span></span></span></code></pre></div><p>Under the hood, <code>Car</code> still has an anonymous field of type <code>Engine</code>. You can access it explicitly if needed:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">myCar</span><span class="p">.</span><span class="nx">Engine</span><span class="p">.</span><span class="nx">Horsepower</span><span class="p">)</span><span class="w"> </span><span class="c1">// Explicit access</span><span class="w">
+</span></span></span></code></pre></div><p>This is a crucial point: promotion is syntactic sugar provided by the compiler. It simplifies access, but the nested structure remains intact. The memory layout of <code>Car</code> contains the <code>Engine</code> struct as a contiguous block within it.</p>
+<h3 id="how-it-differs-from-inheritance">How It Differs from Inheritance<a hidden class="anchor" aria-hidden="true" href="#how-it-differs-from-inheritance">#</a></h3>
+<p>For engineers coming from Python or Java, this model can feel both familiar and strange. Let&rsquo;s draw a clear distinction.</p>
+<ul>
+<li>
+<p><strong>Inheritance (Is-A Relationship):</strong> In object-oriented programming (OOP), inheritance establishes an &ldquo;is-a&rdquo; relationship. If <code>Dog</code> inherits from <code>Animal</code>, a <code>Dog</code> <em>is an</em> <code>Animal</code>. This creates a tight coupling and a hierarchical taxonomy. A <code>Dog</code> object can be used anywhere an <code>Animal</code> object is expected (polymorphism). However, this can lead to brittle designs. What if you want a <code>RobotDog</code> that barks but doesn&rsquo;t eat? It doesn&rsquo;t fit neatly into the <code>Animal</code> hierarchy. This is often called the &ldquo;gorilla/banana problem&rdquo;: you wanted a banana, but you got a gorilla holding the banana and the entire jungle with it.</p>
+</li>
+<li>
+<p><strong>Composition (Has-A Relationship):</strong> Go&rsquo;s embedding fosters a &ldquo;has-a&rdquo; relationship. The <code>Car</code> from our example <em>has an</em> <code>Engine</code>. It is not an <code>Engine</code>. This is a looser coupling. The <code>Car</code> leverages the <code>Engine</code>&rsquo;s functionality but is not defined by it. This allows for greater flexibility. You could easily create a <code>Boat</code> struct that also embeds the same <code>Engine</code>, or a different <code>ElectricEngine</code> struct to embed in a new <code>Tesla</code> struct. The components are interchangeable building blocks.</p>
+</li>
+</ul>
+<p>Another key difference is in <strong>polymorphism</strong>. In Go, polymorphism is achieved through <strong>interfaces</strong>, not inheritance. An interface defines a set of methods. Any type that implements those methods satisfies the interface, regardless of its composition. While embedding a type that satisfies an interface will make the outer struct also satisfy that interface, the mechanism is explicit and contract-based, not hierarchy-based.</p>
+<hr>
+<h2 id="idiomatic-code-walk-through">Idiomatic Code Walk-through<a hidden class="anchor" aria-hidden="true" href="#idiomatic-code-walk-through">#</a></h2>
+<p>Let&rsquo;s apply this to a common DevOps task: creating a configurable and observable background worker. We want a base worker that handles essentials like starting, stopping, and status reporting. Then, we&rsquo;ll create a specialized worker that performs a specific task, like polling a URL.</p>
+<h3 id="composable-worker-example">Composable Worker Example<a hidden class="anchor" aria-hidden="true" href="#composable-worker-example">#</a></h3>
+<p>Our system will have two main components:</p>
+<ol>
+<li><code>BaseWorker</code>: Handles the generic lifecycle logic (starting, stopping, status).</li>
+<li><code>URLPoller</code>: Embeds <code>BaseWorker</code> and adds specific logic to poll an HTTP endpoint at a regular interval.</li>
+</ol>
+<p>This example uses only the standard library, so no <code>go mod</code> additions are necessary.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;log&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;net/http&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;sync&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// BaseWorker handles the generic lifecycle of a background process.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// It uses a mutex to protect its state, making it safe for concurrent access.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">BaseWorker</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">mu</span><span class="w">         </span><span class="nx">sync</span><span class="p">.</span><span class="nx">Mutex</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">status</span><span class="w">     </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">stopChan</span><span class="w">   </span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">wg</span><span class="w">         </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// NewBaseWorker creates and initializes a BaseWorker.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">NewBaseWorker</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="nx">BaseWorker</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">BaseWorker</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">status</span><span class="p">:</span><span class="w">   </span><span class="s">&#34;stopped&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">stopChan</span><span class="p">:</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Start sets the worker&#39;s status to &#34;running&#34;. It&#39;s a placeholder</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// for more complex start-up logic. The embedding type should</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// override this if it needs more specific behavior.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">BaseWorker</span><span class="p">)</span><span class="w"> </span><span class="nf">Start</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">w</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">w</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;running&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Worker is already running.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;BaseWorker starting...&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;running&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">stopChan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{})</span><span class="w"> </span><span class="c1">// Re-create stop channel for re-use</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Stop signals the worker to terminate and waits for it to finish.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">BaseWorker</span><span class="p">)</span><span class="w"> </span><span class="nf">Stop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">w</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">w</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;stopped&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Worker is already stopped.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;BaseWorker stopping...&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nb">close</span><span class="p">(</span><span class="nx">w</span><span class="p">.</span><span class="nx">stopChan</span><span class="p">)</span><span class="w"> </span><span class="c1">// Signal goroutines to stop</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">status</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;stopped&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Wait blocks until the worker&#39;s main loop has exited.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">BaseWorker</span><span class="p">)</span><span class="w"> </span><span class="nf">Wait</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">wg</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Worker has finished.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Status returns the current status of the worker.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="o">*</span><span class="nx">BaseWorker</span><span class="p">)</span><span class="w"> </span><span class="nf">Status</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">w</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">w</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">w</span><span class="p">.</span><span class="nx">status</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// URLPoller embeds BaseWorker to gain its lifecycle management</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// and adds specific functionality for polling a URL.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">URLPoller</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="o">*</span><span class="nx">BaseWorker</span><span class="w"> </span><span class="c1">// Embedding a pointer is common to share state</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">URL</span><span class="w">         </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Interval</span><span class="w">    </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// NewURLPoller creates a specialized worker for polling URLs.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">NewURLPoller</span><span class="p">(</span><span class="nx">url</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">interval</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">URLPoller</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">URLPoller</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">BaseWorker</span><span class="p">:</span><span class="w"> </span><span class="nf">NewBaseWorker</span><span class="p">(),</span><span class="w"> </span><span class="c1">// Initialize the embedded struct</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">URL</span><span class="p">:</span><span class="w">        </span><span class="nx">url</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Interval</span><span class="p">:</span><span class="w">   </span><span class="nx">interval</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Start overrides the BaseWorker&#39;s Start method.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// This is method overriding via composition, not inheritance.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">URLPoller</span><span class="p">)</span><span class="w"> </span><span class="nf">Start</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Call the embedded type&#39;s method to handle the base logic.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">p</span><span class="p">.</span><span class="nx">BaseWorker</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">p</span><span class="p">.</span><span class="nx">wg</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="c1">// Signal that one goroutine is starting.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">go</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nf">pollLoop</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// pollLoop is the main work loop for the URLPoller.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">p</span><span class="w"> </span><span class="o">*</span><span class="nx">URLPoller</span><span class="p">)</span><span class="w"> </span><span class="nf">pollLoop</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">wg</span><span class="p">.</span><span class="nf">Done</span><span class="p">()</span><span class="w"> </span><span class="c1">// Signal that this goroutine has finished when it exits.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Starting to poll %s every %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">URL</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">Interval</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">ticker</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nf">NewTicker</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">Interval</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">ticker</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">select</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">ticker</span><span class="p">.</span><span class="nx">C</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Perform the health check.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">resp</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">p</span><span class="p">.</span><span class="nx">URL</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;ERROR: Failed to poll %s: %v&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">URL</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">continue</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Polled %s - Status: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">URL</span><span class="p">,</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">Status</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">resp</span><span class="p">.</span><span class="nx">Body</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">p</span><span class="p">.</span><span class="nx">stopChan</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// The stop signal was received from the BaseWorker.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Stopping poller for %s.&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">URL</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// --- Main execution ---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;### Starting URL Poller Demo ###&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">poller</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">NewURLPoller</span><span class="p">(</span><span class="s">&#34;https://www.google.com&#34;</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// We can call methods from both BaseWorker and URLPoller.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Initial status: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">poller</span><span class="p">.</span><span class="nf">Status</span><span class="p">())</span><span class="w"> </span><span class="c1">// Promoted method</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Start the poller. This calls the URLPoller&#39;s overridden Start method.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">poller</span><span class="p">.</span><span class="nf">Start</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Status after start: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">poller</span><span class="p">.</span><span class="nf">Status</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Let it run for a few seconds.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">10</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Stop the poller. This calls the promoted BaseWorker.Stop method.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">poller</span><span class="p">.</span><span class="nf">Stop</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Wait for the polling goroutine to exit gracefully.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">poller</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Final status: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">poller</span><span class="p">.</span><span class="nf">Status</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;### Demo Finished ###&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="build-run-and-cicd-considerations">Build, Run, and CI/CD Considerations<a hidden class="anchor" aria-hidden="true" href="#build-run-and-cicd-considerations">#</a></h3>
+<p><strong>To Build and Run:</strong></p>
+<ol>
+<li>Save the code as <code>main.go</code> in a new directory.</li>
+<li>Open a terminal in that directory.</li>
+<li>Initialize a Go module: <code>go mod init example.com/worker</code></li>
+<li>Run the program: <code>go run .</code></li>
+</ol>
+<p>You will see output showing the poller starting, checking the URL every 3 seconds, and then stopping gracefully.</p>
+<p><strong>CI/CD Pipeline Integration:</strong></p>
+<ul>
+<li><strong>Unit Testing:</strong> This compositional design is highly testable. You can write unit tests for <code>BaseWorker</code> in complete isolation to verify its lifecycle logic (start, stop, status). Separately, you can test <code>URLPoller</code>. When testing <code>URLPoller</code>, you can even embed a mocked <code>BaseWorker</code> to ensure the <code>pollLoop</code> responds correctly to signals from the stop channel without needing to test the base logic again.</li>
+<li><strong>Linting and Formatting:</strong> Your CI pipeline must enforce code quality. Always include steps for <code>gofmt -s -w .</code> to ensure consistent formatting and <code>go vet .</code> to catch suspicious constructs. Tools like <code>golangci-lint</code> can provide even more in-depth static analysis.</li>
+<li><strong>Building Binaries:</strong> For deployment, your pipeline should build a static binary. This is a key advantage of Go for DevOps.
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Build a statically linked binary for Linux</span>
+</span></span><span class="line"><span class="cl"><span class="nv">GOOS</span><span class="o">=</span>linux <span class="nv">GOARCH</span><span class="o">=</span>amd64 <span class="nv">CGO_ENABLED</span><span class="o">=</span><span class="m">0</span> go build -ldflags<span class="o">=</span><span class="s2">&#34;-w -s&#34;</span> -o url-poller .
+</span></span></code></pre></div>This command produces a single, dependency-free executable (<code>url-poller</code>) that can be copied into a minimal Docker container (like <code>gcr.io/distroless/static-debian12</code>) or deployed directly to a VM.</li>
+</ul>
+<hr>
+<h2 id="gotchas--best-practices">Gotchas &amp; Best Practices<a hidden class="anchor" aria-hidden="true" href="#gotchas--best-practices">#</a></h2>
+<p>Struct embedding is a sharp tool, but like any tool, it can cause problems if misused. Here are the most common pitfalls and how to handle them correctly.</p>
+<h3 id="1-method-and-field-collisions">1. Method and Field Collisions<a hidden class="anchor" aria-hidden="true" href="#1-method-and-field-collisions">#</a></h3>
+<p>A &ldquo;collision&rdquo; or &ldquo;ambiguity&rdquo; occurs when the outer struct and an embedded struct (or multiple embedded structs) define a field or method with the same name.</p>
+<p><strong>The Problem:</strong> Go has a simple rule to resolve this: <strong>the field or method on the outermost struct wins</strong>. This is intentional and allows the outer struct to override the behavior of the embedded one. However, if you&rsquo;re not aware of this, you might inadvertently hide functionality.</p>
+<p><strong>Problem Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Logger</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Level</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">l</span><span class="w"> </span><span class="o">*</span><span class="nx">Logger</span><span class="p">)</span><span class="w"> </span><span class="nf">Log</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;[%s] %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">l</span><span class="p">.</span><span class="nx">Level</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Task</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Logger</span><span class="w">     </span><span class="c1">// Embed Logger</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Name</span><span class="w">   </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Task defines its own Log method, which &#34;hides&#34; the one from Logger.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Task</span><span class="p">)</span><span class="w"> </span><span class="nf">Log</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Task &#39;%s&#39; is logging: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">t</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">task</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">Task</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Logger</span><span class="p">:</span><span class="w"> </span><span class="nx">Logger</span><span class="p">{</span><span class="nx">Level</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;INFO&#34;</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Name</span><span class="p">:</span><span class="w">   </span><span class="s">&#34;Deploy Application&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// This calls Task&#39;s Log method, not Logger&#39;s.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">task</span><span class="p">.</span><span class="nf">Log</span><span class="p">(</span><span class="s">&#34;Starting deployment.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Output: Task &#39;Deploy Application&#39; is logging: Starting deployment.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><strong>Remediation: Explicit Access</strong></p>
+<p>This behavior is often what you want—it&rsquo;s how you override methods. But if you need to call the &ldquo;hidden&rdquo; embedded method, you can do so by explicitly accessing the embedded struct by its type name.</p>
+<p><strong>Remediated Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Logger</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Level</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">l</span><span class="w"> </span><span class="o">*</span><span class="nx">Logger</span><span class="p">)</span><span class="w"> </span><span class="nf">Log</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;[%s] %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">l</span><span class="p">.</span><span class="nx">Level</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Task</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Logger</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Name</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">Task</span><span class="p">)</span><span class="w"> </span><span class="nf">Log</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// We can still call the embedded Logger&#39;s method explicitly.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">t</span><span class="p">.</span><span class="nx">Logger</span><span class="p">.</span><span class="nf">Log</span><span class="p">(</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;Task &#39;%s&#39;: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">t</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">task</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">Task</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Logger</span><span class="p">:</span><span class="w"> </span><span class="nx">Logger</span><span class="p">{</span><span class="nx">Level</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;INFO&#34;</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Name</span><span class="p">:</span><span class="w">   </span><span class="s">&#34;Deploy Application&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// This now calls Task&#39;s method, which in turn calls Logger&#39;s method.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">task</span><span class="p">.</span><span class="nf">Log</span><span class="p">(</span><span class="s">&#34;Starting deployment.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Output: [INFO] Task &#39;Deploy Application&#39;: Starting deployment.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="2-shadowing-embedded-fields">2. Shadowing Embedded Fields<a hidden class="anchor" aria-hidden="true" href="#2-shadowing-embedded-fields">#</a></h3>
+<p>Similar to method collisions, a field in the outer struct can shadow a field with the same name in the embedded struct.</p>
+<p><strong>The Problem:</strong> This can lead to subtle bugs where you think you&rsquo;re updating a field but are actually modifying a different one.</p>
+<p><strong>Problem Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">BaseConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Version</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// The version of the base configuration format.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">AppConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">BaseConfig</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Version</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="c1">// The version of the application itself. This shadows BaseConfig.Version.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">AppName</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">config</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">AppConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">BaseConfig</span><span class="p">:</span><span class="w"> </span><span class="nx">BaseConfig</span><span class="p">{</span><span class="nx">Version</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;1.0&#34;</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Version</span><span class="p">:</span><span class="w">    </span><span class="s">&#34;2.5-beta&#34;</span><span class="p">,</span><span class="w"> </span><span class="c1">// This sets AppConfig.Version</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">AppName</span><span class="p">:</span><span class="w">    </span><span class="s">&#34;AuthService&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Accessing `Version` directly gets the outer field.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;App Version: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="p">.</span><span class="nx">Version</span><span class="p">)</span><span class="w"> </span><span class="c1">// &#34;2.5-beta&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The inner field is hidden. How do we get &#34;1.0&#34;?</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// A common mistake is assuming it&#39;s overwritten or inaccessible.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Base Config Version is hidden, direct access gives: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="p">.</span><span class="nx">Version</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><strong>Remediation: Explicit Access</strong></p>
+<p>Just like with methods, the solution is to use the embedded struct&rsquo;s type name to create an explicit path to the field you want.</p>
+<p><strong>Remediated Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">BaseConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Version</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">AppConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">BaseConfig</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Version</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">AppName</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">config</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">AppConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">BaseConfig</span><span class="p">:</span><span class="w"> </span><span class="nx">BaseConfig</span><span class="p">{</span><span class="nx">Version</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;1.0&#34;</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Version</span><span class="p">:</span><span class="w">    </span><span class="s">&#34;2.5-beta&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">AppName</span><span class="p">:</span><span class="w">    </span><span class="s">&#34;AuthService&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;App Version: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="p">.</span><span class="nx">Version</span><span class="p">)</span><span class="w"> </span><span class="c1">// Accesses outer field</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// To access the shadowed field, qualify it with the embedded type name.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Base Config Version: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">config</span><span class="p">.</span><span class="nx">BaseConfig</span><span class="p">.</span><span class="nx">Version</span><span class="p">)</span><span class="w"> </span><span class="c1">// Accesses inner field</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="3-interface-satisfaction-and-nil-pointers">3. Interface Satisfaction and Nil Pointers<a hidden class="anchor" aria-hidden="true" href="#3-interface-satisfaction-and-nil-pointers">#</a></h3>
+<p>A powerful feature of embedding is that if an embedded type satisfies an interface, the outer struct also satisfies that interface. However, this can lead to a runtime panic if the embedded type is a pointer and it&rsquo;s <code>nil</code>.</p>
+<p><strong>The Problem:</strong> The compiler sees that <code>*MyType</code> implements <code>MyInterface</code>, so it allows <code>Container{*MyType}</code> to also be treated as <code>MyInterface</code>. But if the pointer is <code>nil</code> at runtime, calling any method on it will cause a panic.</p>
+<p><strong>Problem Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Notifier</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nf">Notify</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">EmailNotifier</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Recipient</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">n</span><span class="w"> </span><span class="o">*</span><span class="nx">EmailNotifier</span><span class="p">)</span><span class="w"> </span><span class="nf">Notify</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Sending email to %s: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nx">Recipient</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// AlertManager embeds the Notifier.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">AlertManager</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Notifier</span><span class="w"> </span><span class="c1">// Embed the interface satisfaction</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Create an AlertManager but forget to initialize the Notifier.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The `Notifier` field will be a nil pointer to EmailNotifier.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">manager</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">AlertManager</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// This line will compile because AlertManager satisfies the Notifier interface.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// However, it will cause a runtime panic because manager.Notifier is nil.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nf">SendMessage</span><span class="p">(</span><span class="nx">manager</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;System is down!&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">SendMessage</span><span class="p">(</span><span class="nx">n</span><span class="w"> </span><span class="nx">Notifier</span><span class="p">,</span><span class="w"> </span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The following line will panic.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">recover</span><span class="p">();</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Recovered from panic:&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">n</span><span class="p">.</span><span class="nf">Notify</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><strong>Remediation: Nil Check and Proper Initialization</strong></p>
+<p>Always initialize embedded pointer types in your constructors. Additionally, add nil checks in methods that depend on the embedded type, especially if it can be set or modified after initialization.</p>
+<p><strong>Remediated Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Notifier</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nf">Notify</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">EmailNotifier</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Recipient</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">n</span><span class="w"> </span><span class="o">*</span><span class="nx">EmailNotifier</span><span class="p">)</span><span class="w"> </span><span class="nf">Notify</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Sending email to %s: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nx">Recipient</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">AlertManager</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Notifier</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// NewAlertManager is a constructor that ensures Notifier is initialized.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">NewAlertManager</span><span class="p">(</span><span class="nx">notifier</span><span class="w"> </span><span class="nx">Notifier</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="nx">AlertManager</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">AlertManager</span><span class="p">{</span><span class="nx">Notifier</span><span class="p">:</span><span class="w"> </span><span class="nx">notifier</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Add a method to the outer struct to handle the nil case gracefully.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="o">*</span><span class="nx">AlertManager</span><span class="p">)</span><span class="w"> </span><span class="nf">SafeNotify</span><span class="p">(</span><span class="nx">message</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">Notifier</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;WARNING: No notifier configured for AlertManager. Message lost: %s\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">m</span><span class="p">.</span><span class="nx">Notifier</span><span class="p">.</span><span class="nf">Notify</span><span class="p">(</span><span class="nx">message</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// --- Safe way ---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Use the constructor to ensure proper initialization.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">emailNotifier</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">EmailNotifier</span><span class="p">{</span><span class="nx">Recipient</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;devops@example.com&#34;</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">manager</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">NewAlertManager</span><span class="p">(</span><span class="nx">emailNotifier</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">manager</span><span class="p">.</span><span class="nf">SafeNotify</span><span class="p">(</span><span class="s">&#34;System is stable.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// --- Unsafe way handled gracefully ---</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">managerWithoutNotifier</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">AlertManager</span><span class="p">{}</span><span class="w"> </span><span class="c1">// Forgot to initialize</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">managerWithoutNotifier</span><span class="p">.</span><span class="nf">SafeNotify</span><span class="p">(</span><span class="s">&#34;System is down!&#34;</span><span class="p">)</span><span class="w"> </span><span class="c1">// The nil check prevents a panic.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="4-concurrency-and-state">4. Concurrency and State<a hidden class="anchor" aria-hidden="true" href="#4-concurrency-and-state">#</a></h3>
+<p>If an embedded struct has a state (fields that can be changed) and the outer struct is used by multiple goroutines, you must protect that state from concurrent access.</p>
+<p><strong>The Problem:</strong> Method promotion makes it easy to forget that the state you&rsquo;re modifying belongs to a shared, embedded component. If you don&rsquo;t use mutexes or other synchronization primitives, you&rsquo;ll introduce race conditions.</p>
+<p><strong>Problem Code (Race Condition):</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;sync&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Counter is a simple counter, but it&#39;s not safe for concurrent use.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Counter</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">count</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Counter</span><span class="p">)</span><span class="w"> </span><span class="nf">Inc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">c</span><span class="p">.</span><span class="nx">count</span><span class="o">++</span><span class="w"> </span><span class="c1">// RACE CONDITION HAPPENS HERE</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">Counter</span><span class="p">)</span><span class="w"> </span><span class="nf">Value</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">count</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">MetricsServer</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Counter</span><span class="w"> </span><span class="c1">// Embeds the unsafe counter</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">server</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">MetricsServer</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="kd">var</span><span class="w"> </span><span class="nx">wg</span><span class="w"> </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Start 100 goroutines that all increment the same counter.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">wg</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">defer</span><span class="w"> </span><span class="nx">wg</span><span class="p">.</span><span class="nf">Done</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">server</span><span class="p">.</span><span class="nf">Inc</span><span class="p">()</span><span class="w"> </span><span class="c1">// Calling the promoted method</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">wg</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The final count will likely be less than 100 due to the race condition.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Run this with `go run -race .` to detect the data race.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Final count: %d (expected 100)\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">server</span><span class="p">.</span><span class="nf">Value</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><strong>Remediation: Encapsulate Concurrency Control</strong></p>
+<p>The best practice is to make the embedded type itself concurrency-safe. This way, any struct that embeds it automatically inherits that safety. Encapsulate the mutex within the type that owns the state.</p>
+<p><strong>Remediated Code:</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;sync&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// SafeCounter encapsulates its own state and synchronization.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">SafeCounter</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">mu</span><span class="w">    </span><span class="nx">sync</span><span class="p">.</span><span class="nx">Mutex</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">count</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Inc is now a concurrency-safe method.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">SafeCounter</span><span class="p">)</span><span class="w"> </span><span class="nf">Inc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">c</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">c</span><span class="p">.</span><span class="nx">count</span><span class="o">++</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">c</span><span class="w"> </span><span class="o">*</span><span class="nx">SafeCounter</span><span class="p">)</span><span class="w"> </span><span class="nf">Value</span><span class="p">()</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">c</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Lock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">defer</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">mu</span><span class="p">.</span><span class="nf">Unlock</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">c</span><span class="p">.</span><span class="nx">count</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// MetricsServer now embeds the concurrency-safe counter.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">MetricsServer</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">SafeCounter</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">server</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">MetricsServer</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="kd">var</span><span class="w"> </span><span class="nx">wg</span><span class="w"> </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Start 100 goroutines that all increment the same counter.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">wg</span><span class="p">.</span><span class="nf">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">defer</span><span class="w"> </span><span class="nx">wg</span><span class="p">.</span><span class="nf">Done</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">server</span><span class="p">.</span><span class="nf">Inc</span><span class="p">()</span><span class="w"> </span><span class="c1">// Calling the promoted, now safe, method</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">wg</span><span class="p">.</span><span class="nf">Wait</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The final count will always be 100.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Final count: %d (expected 100)\n&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">server</span><span class="p">.</span><span class="nf">Value</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>By making <code>SafeCounter</code> responsible for its own locking, we ensure that any type embedding it, like <code>MetricsServer</code>, automatically gets race-free behavior without the outer type needing to know the implementation details. This is a perfect example of building robust, reusable components—the core promise of composition.</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/articles/tags/golang/">Golang</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/articles/golang/genai-json-schema/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>genai json schema</span>
+  </a>
+  <a class="next" href="http://localhost:1313/articles/golang/context/">
+    <span class="title">Next »</span>
+    <br>
+    <span>context</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2025 <a href="http://localhost:1313/articles/">elkokito</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

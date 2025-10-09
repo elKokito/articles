@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/articles/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=articles/livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>git-to-jira | elkokito</title>
+<meta name="keywords" content="llm, bubbletea, jira">
+<meta name="description" content="Building a &ldquo;Git-to-Jira&rdquo; TUI with Go, Bubble Tea, and AI
+Introduction
+In modern software development, the cycle of coding, creating a pull request, and documenting work in a project management tool like Jira is a daily ritual. However, this process is often fragmented, forcing developers to constantly switch contexts between their code editor, the GitHub web interface, and their Jira board. This &ldquo;workflow friction&rdquo; is more than a minor annoyance; it&rsquo;s a drain on productivity and focus. Each step—crafting a PR title, writing a description, navigating to Jira, creating a new ticket, and copying over the details—is a manual, repetitive task ripe for human error and a significant source of cognitive load.">
+<meta name="author" content="elkokito">
+<link rel="canonical" href="http://localhost:1313/articles/bubbletea/git-to-jira/">
+<link crossorigin="anonymous" href="/articles/assets/css/stylesheet.a090830a421002426baafbd314e38f149d77b4c48a12ee9312700d770b27fb26.css" integrity="sha256-oJCDCkIQAkJrqvvTFOOPFJ13tMSKEu6TEnANdwsn&#43;yY=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/articles/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/articles/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/articles/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/articles/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/articles/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/articles/bubbletea/git-to-jira/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ 
+    startOnLoad: true,
+    theme: 'dark'
+  });
+</script>
+
+
+</head>
+
+<body class=" dark" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/articles/" accesskey="h" title="elkokito (Alt + H)">elkokito</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/articles/golang/" title="Golang">
+                    <span>Golang</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/flutter/" title="Flutter">
+                    <span>Flutter</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/bubbletea/" title="Bubble Tea">
+                    <span>Bubble Tea</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/articles/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/articles/bubbletea/">Bubbletea</a></div>
+    <h1 class="post-title entry-hint-parent">
+      git-to-jira
+    </h1>
+    <div class="post-meta"><span title='2025-06-17 00:00:00 +0000 UTC'>June 17, 2025</span>&nbsp;·&nbsp;<span>22 min</span>&nbsp;·&nbsp;<span>elkokito</span>
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#building-a-git-to-jira-tui-with-go-bubble-tea-and-ai" aria-label="Building a &ldquo;Git-to-Jira&rdquo; TUI with Go, Bubble Tea, and AI">Building a &ldquo;Git-to-Jira&rdquo; TUI with Go, Bubble Tea, and AI</a><ul>
+                        <ul>
+                        
+                <li>
+                    <a href="#introduction" aria-label="Introduction">Introduction</a></li></ul>
+                    
+                <li>
+                    <a href="#1-core-architecture-and-workflow" aria-label="1. Core Architecture and Workflow">1. Core Architecture and Workflow</a><ul>
+                        
+                <li>
+                    <a href="#high-level-architectural-overview" aria-label="High-Level Architectural Overview">High-Level Architectural Overview</a></li>
+                <li>
+                    <a href="#end-to-end-workflow" aria-label="End-to-End Workflow">End-to-End Workflow</a></li></ul>
+                </li>
+                <li>
+                    <a href="#2-setting-up-the-go-project" aria-label="2. Setting Up the Go Project">2. Setting Up the Go Project</a><ul>
+                        
+                <li>
+                    <a href="#initializing-the-go-module" aria-label="Initializing the Go Module">Initializing the Go Module</a></li>
+                <li>
+                    <a href="#secure-management-of-api-keys-and-credentials" aria-label="Secure Management of API Keys and Credentials">Secure Management of API Keys and Credentials</a></li></ul>
+                </li>
+                <li>
+                    <a href="#3-interacting-with-git-getting-the-diff" aria-label="3. Interacting with Git: Getting the Diff">3. Interacting with Git: Getting the Diff</a></li>
+                <li>
+                    <a href="#4-generating-content-with-an-llm" aria-label="4. Generating Content with an LLM">4. Generating Content with an LLM</a><ul>
+                        
+                <li>
+                    <a href="#prompt-engineering-for-structured-output" aria-label="Prompt Engineering for Structured Output">Prompt Engineering for Structured Output</a></li>
+                <li>
+                    <a href="#interacting-with-the-openai-api" aria-label="Interacting with the OpenAI API">Interacting with the OpenAI API</a></li></ul>
+                </li>
+                <li>
+                    <a href="#5-the-bubble-tea-tui-state-management" aria-label="5. The Bubble Tea TUI: State Management">5. The Bubble Tea TUI: State Management</a><ul>
+                        
+                <li>
+                    <a href="#core-concepts-of-the-elm-architecture" aria-label="Core Concepts of The Elm Architecture">Core Concepts of The Elm Architecture</a></li>
+                <li>
+                    <a href="#defining-the-application-state-model" aria-label="Defining the Application State (Model)">Defining the Application State (Model)</a></li>
+                <li>
+                    <a href="#the-update-function-as-a-state-machine" aria-label="The Update Function as a State Machine">The Update Function as a State Machine</a></li>
+                <li>
+                    <a href="#the-power-of-teacmd-for-asynchronous-io" aria-label="The Power of tea.Cmd for Asynchronous I/O">The Power of tea.Cmd for Asynchronous I/O</a></li></ul>
+                </li>
+                <li>
+                    <a href="#6-integrating-with-github-and-jira" aria-label="6. Integrating with GitHub and Jira">6. Integrating with GitHub and Jira</a><ul>
+                        
+                <li>
+                    <a href="#opening-a-pull-request-with-go-github" aria-label="Opening a Pull Request with go-github">Opening a Pull Request with go-github</a></li>
+                <li>
+                    <a href="#creating-a-jira-ticket-with-go-jira" aria-label="Creating a Jira Ticket with go-jira">Creating a Jira Ticket with go-jira</a></li></ul>
+                </li>
+                <li>
+                    <a href="#7-bringing-it-all-together-in-the-update-function" aria-label="7. Bringing It All Together in the Update Function">7. Bringing It All Together in the Update Function</a></li>
+                <li>
+                    <a href="#conclusion" aria-label="Conclusion">Conclusion</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="building-a-git-to-jira-tui-with-go-bubble-tea-and-ai">Building a &ldquo;Git-to-Jira&rdquo; TUI with Go, Bubble Tea, and AI<a hidden class="anchor" aria-hidden="true" href="#building-a-git-to-jira-tui-with-go-bubble-tea-and-ai">#</a></h1>
+<h3 id="introduction">Introduction<a hidden class="anchor" aria-hidden="true" href="#introduction">#</a></h3>
+<p>In modern software development, the cycle of coding, creating a pull request, and documenting work in a project management tool like Jira is a daily ritual. However, this process is often fragmented, forcing developers to constantly switch contexts between their code editor, the GitHub web interface, and their Jira board. This &ldquo;workflow friction&rdquo; is more than a minor annoyance; it&rsquo;s a drain on productivity and focus. Each step—crafting a PR title, writing a description, navigating to Jira, creating a new ticket, and copying over the details—is a manual, repetitive task ripe for human error and a significant source of cognitive load.</p>
+<p>This article presents an elegant, automated solution: a command-line tool that streamlines this entire workflow into a single, interactive command. We will build a &ldquo;Git-to-Jira&rdquo; Text-based User Interface (TUI) tool that automates the creation of a GitHub pull request and a corresponding, detailed Jira ticket. The core of this tool&rsquo;s intelligence lies in its ability to use a Large Language Model (LLM) to generate high-quality, context-aware titles and descriptions directly from the code changes in a <code>git diff</code>.</p>
+<p>To build this powerful workflow accelerator, we will leverage a curated stack of modern technologies:</p>
+<ul>
+<li><strong>Go</strong>: Chosen for its performance, strong typing, and excellent support for building concurrent, single-binary command-line applications.[1]
+<ul>
+<li><strong>Bubble Tea</strong>: A stateful TUI framework for Go, based on The Elm Architecture, that enables the creation of sophisticated and responsive terminal applications.[2, 3]</li>
+<li><strong>GitHub &amp; Jira REST APIs</strong>: We will programmatically interact with these platforms to automate the creation of pull requests and issues.[4, 5]</li>
+<li><strong>Large Language Models (LLM)</strong>: By integrating with an LLM provider like OpenAI, we will transform raw <code>git diff</code> output into well-structured, human-readable documentation for our PRs and tickets.[6, 7]</li>
+</ul>
+</li>
+</ul>
+<h2 id="1-core-architecture-and-workflow">1. Core Architecture and Workflow<a hidden class="anchor" aria-hidden="true" href="#1-core-architecture-and-workflow">#</a></h2>
+<p>A robust command-line tool requires a well-defined architecture. Our Git-to-Jira tool is designed as a set of modular, interacting components orchestrated by a central TUI. This design promotes separation of concerns and maintainability.</p>
+<h3 id="high-level-architectural-overview">High-Level Architectural Overview<a hidden class="anchor" aria-hidden="true" href="#high-level-architectural-overview">#</a></h3>
+<p>The application is composed of four primary components that communicate through a clear, event-driven flow:</p>
+<ul>
+<li><strong>The TUI (Bubble Tea <code>Program</code>)</strong>: This is the application&rsquo;s central nervous system. Built with the Bubble Tea framework, it is responsible for managing the application&rsquo;s state, rendering the user interface, and handling all user input. Crucially, it orchestrates the entire workflow by dispatching asynchronous tasks (as <code>tea.Cmd</code> functions) and reacting to the messages they produce upon completion. To maintain a responsive UI, the TUI&rsquo;s core <code>Update</code> loop never performs blocking I/O operations directly.[2, 8]
+<ul>
+<li><strong>Git Client Wrapper</strong>: A dedicated module that encapsulates all interactions with the local Git repository. Its primary responsibility is to execute <code>git</code> commands, such as <code>git diff</code>, using Go&rsquo;s <code>os/exec</code> package and to parse their output.[9, 10]</li>
+<li><strong>API Clients (GitHub, Jira, LLM)</strong>: Three distinct clients, each isolated in its own module. Each client is responsible for the specifics of communicating with its respective external service: handling HTTP requests, managing authentication headers, and serializing/deserializing JSON data. This modularity makes the system easier to test and extend.[6, 11, 12]</li>
+</ul>
+</li>
+</ul>
+<p>The relationship between these components is not merely a simple sequence. The TUI acts as an <strong>asynchronous orchestrator</strong>. Any operation that involves I/O—fetching the git diff, calling the LLM, or posting to GitHub and Jira—is a potentially long-running, blocking task. If these tasks were executed directly within the TUI&rsquo;s main event loop, the entire interface would freeze, becoming unresponsive to user input. The architecture avoids this by using Bubble Tea&rsquo;s command-message pattern. The <code>Update</code> function dispatches a command (<code>tea.Cmd</code>), and the Bubble Tea runtime executes it in a separate goroutine. Once the task is complete, it sends a message (<code>tea.Msg</code>) back to the <code>Update</code> function, which can then update the application&rsquo;s state and trigger the next step. This makes the TUI the manager of a state machine, where transitions are driven by the completion of asynchronous events.</p>
+<h3 id="end-to-end-workflow">End-to-End Workflow<a hidden class="anchor" aria-hidden="true" href="#end-to-end-workflow">#</a></h3>
+<p>The tool executes a precise sequence of events, managed by the TUI&rsquo;s state machine:</p>
+<ol>
+<li><strong>Invocation</strong>: The user executes the compiled binary from their terminal within a Git repository&rsquo;s working directory.</li>
+<li><strong>State 1: Fetching Diff</strong>: The Bubble Tea program initializes. Its <code>Init</code> function immediately returns a command to invoke our Git Client Wrapper to fetch the diff between the current branch and the remote main/master branch. The UI shows a loading spinner.</li>
+<li><strong>State 2: Generating Content</strong>: The Git command completes and sends a <code>diffFetchedMsg</code> back to the TUI&rsquo;s <code>Update</code> function. The model&rsquo;s state transitions, and a new command is dispatched to the LLM Client, sending the diff string to generate a title and description. The spinner continues.</li>
+<li><strong>State 3: Awaiting User Approval</strong>: The LLM API call returns a <code>contentGeneratedMsg</code>. The <code>Update</code> function stores the AI-generated title and description in the application&rsquo;s model. The <code>View</code> function now renders this content, presenting it to the user for review with &ldquo;Approve&rdquo; and &ldquo;Cancel&rdquo; options. The application is now idle, awaiting a <code>tea.KeyMsg</code> from the user.</li>
+<li><strong>State 4: Creating Pull Request</strong>: If the user presses the approval key, the <code>Update</code> function dispatches a command to the GitHub API Client, passing the title and description to create a new pull request. The spinner reappears.</li>
+<li><strong>State 5: Creating Jira Ticket</strong>: Upon successful PR creation, the GitHub client sends a <code>pullRequestCreatedMsg</code> containing the new PR&rsquo;s URL. The <code>Update</code> function immediately transitions state and dispatches a final command to the Jira API Client to create a corresponding ticket.</li>
+<li><strong>State 6: Final Status</strong>: The Jira API call completes, sending a <code>jiraTicketCreatedMsg</code>. The <code>Update</code> function stores the final success status and the URLs for both the PR and the Jira ticket in the model. The <code>View</code> updates to display this summary information. The application then sends a <code>tea.Quit</code> command to exit gracefully.</li>
+<li><strong>Error Handling</strong>: If any command at any stage fails (e.g., network error, invalid API key), it sends back a specific error message. The <code>Update</code> function catches this, transitions to an <code>error</code> state, and the <code>View</code> displays the error clearly to the user before exiting.</li>
+</ol>
+<h2 id="2-setting-up-the-go-project">2. Setting Up the Go Project<a hidden class="anchor" aria-hidden="true" href="#2-setting-up-the-go-project">#</a></h2>
+<p>A solid foundation is key to any successful project. This section covers initializing the Go module, installing dependencies, and establishing a secure and flexible configuration management strategy.</p>
+<h3 id="initializing-the-go-module">Initializing the Go Module<a hidden class="anchor" aria-hidden="true" href="#initializing-the-go-module">#</a></h3>
+<p>First, create a directory for the project and initialize it as a Go module. This is the standard practice for managing dependencies in modern Go development.[13, 14]bash
+mkdir git-to-jira
+cd git-to-jira
+go mod init <a href="https://www.google.com/search?q=https://github.com/your-username/git-to-jira">github.com/your-username/git-to-jira</a></p>
+<pre tabindex="0"><code>
+### Installing Dependencies
+
+Our tool relies on several high-quality, open-source Go libraries. The following table outlines each dependency and its purpose in the project.
+
+| Library | Import Path | Purpose |
+| :--- | :--- | :--- |
+| Bubble Tea | `github.com/charmbracelet/bubbletea` | The core framework for building our TUI.[2, 3] |
+| Bubbles | `github.com/charmbracelet/bubbles` | A library of pre-built TUI components like spinners and text inputs.[15] |
+| Lip Gloss | `github.com/charmbracelet/lipgloss` | A library for advanced terminal styling and layout, used to make our TUI look good.[16, 17] |
+| Go GitHub | `github.com/google/go-github/vXX` | The official Go client library for interacting with the GitHub REST API.[11] |
+| Go Jira | `github.com/andygrunwald/go-jira` | A widely-used Go client for the Jira REST API.[12, 18] |
+| OpenAI Go | `github.com/openai/openai-go` | The official Go client for the OpenAI API, used for generating content.[6] |
+| Viper | `github.com/spf13/viper` | A complete configuration solution for handling files, environment variables, and defaults.[19] |
+| GoDotEnv | `github.com/joho/godotenv` | A utility to load environment variables from a `.env` file during local development.[20, 21] |
+
+To install all these dependencies, run the following `go get` command. We specify a version for the `go-github` library to ensure API stability and reproducible builds.[11]
+
+```bash
+go get [github.com/charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea) \
+[github.com/charmbracelet/bubbles](https://github.com/charmbracelet/bubbles) \
+[github.com/charmbracelet/lipgloss](https://github.com/charmbracelet/lipgloss) \
+[github.com/google/go-github/v72](https://github.com/google/go-github/v72) \
+[github.com/andygrunwald/go-jira](https://github.com/andygrunwald/go-jira) \
+[github.com/openai/openai-go](https://github.com/openai/openai-go) \
+[github.com/spf13/viper](https://github.com/spf13/viper) \
+[github.com/joho/godotenv](https://github.com/joho/godotenv)
+</code></pre><p>After running this, <code>go mod tidy</code> will finalize the <code>go.mod</code> and <code>go.sum</code> files.</p>
+<h3 id="secure-management-of-api-keys-and-credentials">Secure Management of API Keys and Credentials<a hidden class="anchor" aria-hidden="true" href="#secure-management-of-api-keys-and-credentials">#</a></h3>
+<p>Hardcoding sensitive information like API keys directly into source code is a major security vulnerability and poor practice.[20] A professional application requires a layered configuration strategy that is both secure and flexible, accommodating different environments like local development and production CI/CD pipelines. We will use a combination of Viper and GoDotEnv to achieve this.</p>
+<p>This approach effectively decouples the application from its environment. The application logic simply requests a configuration value, like <code>config.GetJiraToken()</code>, without needing to know whether that value comes from a file or an environment variable. This abstraction is a hallmark of the &ldquo;12-Factor App&rdquo; methodology, allowing the same compiled binary to be deployed across different environments without code changes.[19, 22]</p>
+<ol>
+<li>
+<p><strong><code>.env</code> for Local Development</strong>: For local development, we will use a <code>.env</code> file to store our secrets. This file is easy to manage and <strong>must</strong> be added to your <code>.gitignore</code> file to prevent it from ever being committed to version control. The <code>godotenv</code> library will load these variables into the environment when the application starts.[20, 23]</p>
+<p><code>.env</code> file example:</p>
+<pre tabindex="0"><code>GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+JIRA_URL=[https://your-domain.atlassian.net](https://your-domain.atlassian.net)
+JIRA_USER=your-email@example.com
+JIRA_TOKEN=xxxxxxxxxxxxxxxxxxxx
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+</code></pre></li>
+<li>
+<p><strong>Configuration File (<code>config.yaml</code>)</strong>: Non-sensitive configuration, such as default values or user preferences, can be stored in a <code>config.yaml</code> file. This file can be committed to version control. Viper excels at reading and parsing structured configuration files.[24, 25]</p>
+<p><code>config.yaml</code> file example:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">git</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">remote</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;origin&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">basebranch</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;main&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">jira</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">projectkey</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;PROJ&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">issuetype</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Task&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">llm</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;gpt-4o&#34;</span><span class="w">
+</span></span></span></code></pre></div></li>
+<li>
+<p><strong>Environment Variables for Production</strong>: In a production or CI/CD environment, secrets should be injected as environment variables. Viper is designed to seamlessly read these variables, and they will automatically override any values defined in the configuration file, following a clear order of precedence.[19]</p>
+</li>
+</ol>
+<p>Here is a <code>config.go</code> file that centralizes all configuration logic:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">config</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;[github.com/joho/godotenv](https://github.com/joho/godotenv)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;[github.com/spf13/viper](https://github.com/spf13/viper)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;log&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Config stores all configuration of the application.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// The values are read by viper from a config file or environment variables.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Config</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">GitHubToken</span><span class="w">   </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;GITHUB_TOKEN&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">JiraURL</span><span class="w">       </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;JIRA_URL&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">JiraUser</span><span class="w">      </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;JIRA_USER&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">JiraToken</span><span class="w">     </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;JIRA_TOKEN&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">OpenAIAPIKey</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;OPENAI_API_KEY&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">GitRemote</span><span class="w">     </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;GIT_REMOTE&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">GitBaseBranch</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;GIT_BASE_BRANCH&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">JiraProjectKey</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;JIRA_PROJECT_KEY&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">JiraIssueType</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;JIRA_ISSUE_TYPE&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">LLMModel</span><span class="w">      </span><span class="kt">string</span><span class="w"> </span><span class="s">`mapstructure:&#34;LLM_MODEL&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// LoadConfig reads configuration from file and environment variables.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">LoadConfig</span><span class="p">()</span><span class="w"> </span><span class="p">(</span><span class="nx">config</span><span class="w"> </span><span class="nx">Config</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Load.env file for local development. In production, env vars are set directly.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">godotenv</span><span class="p">.</span><span class="nf">Load</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">log</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;No.env file found, reading from environment&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Set default values</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">SetDefault</span><span class="p">(</span><span class="s">&#34;GIT_REMOTE&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;origin&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">SetDefault</span><span class="p">(</span><span class="s">&#34;GIT_BASE_BRANCH&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;main&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">SetDefault</span><span class="p">(</span><span class="s">&#34;JIRA_ISSUE_TYPE&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;Task&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">SetDefault</span><span class="p">(</span><span class="s">&#34;LLM_MODEL&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;gpt-4o&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Tell viper to look for a config file named `config` in the current directory</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">AddConfigPath</span><span class="p">(</span><span class="s">&#34;.&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">SetConfigName</span><span class="p">(</span><span class="s">&#34;config&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">SetConfigType</span><span class="p">(</span><span class="s">&#34;yaml&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Attempt to read the config file, ignoring errors if it&#39;s not found</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">viper</span><span class="p">.</span><span class="nf">ReadInConfig</span><span class="p">();</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">err</span><span class="p">.(</span><span class="nx">viper</span><span class="p">.</span><span class="nx">ConfigFileNotFoundError</span><span class="p">);!</span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="nx">Config</span><span class="p">{},</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;error reading config file: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Enable viper to read environment variables</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">viper</span><span class="p">.</span><span class="nf">AutomaticEnv</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Unmarshal the configuration into our struct</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">viper</span><span class="p">.</span><span class="nf">Unmarshal</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">config</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h2 id="3-interacting-with-git-getting-the-diff">3. Interacting with Git: Getting the Diff<a hidden class="anchor" aria-hidden="true" href="#3-interacting-with-git-getting-the-diff">#</a></h2>
+<p>The foundational input for our AI content generation is the <code>git diff</code>. We need a reliable way to execute the <code>git diff</code> command from within our Go application and capture its output. This is accomplished using the standard library&rsquo;s <code>os/exec</code> package.</p>
+<p>A critical detail when working with the <code>diff</code> command (and by extension, <code>git diff</code>) is its use of exit codes. A successful execution of <code>diff</code> does not always return an exit code of <code>0</code>. The exit codes are specifically defined [9]:</p>
+<ul>
+<li><strong>Exit Code 0</strong>: No differences were found.
+<ul>
+<li><strong>Exit Code 1</strong>: Differences were found.</li>
+<li><strong>Exit Code &gt; 1</strong>: An error occurred during execution.</li>
+</ul>
+</li>
+</ul>
+<p>A naive check like <code>if err!= nil</code> after running the command will fail. Go&rsquo;s <code>exec</code> package treats any non-zero exit code as an error of type <code>*exec.ExitError</code>.[10] Therefore, an exit code of <code>1</code>—which for our purposes is a success—would be incorrectly interpreted as a fatal error.</p>
+<p>The correct, robust approach is to inspect the error more closely. We must check if the returned error is an <code>*exec.ExitError</code> and, if so, extract the underlying system exit code to specifically allow <code>1</code> as a valid, non-error state.[9]</p>
+<p>The following function, <code>getGitDiff</code>, demonstrates this robust implementation. It constructs the <code>git diff</code> command to compare the current branch (<code>HEAD</code>) against a remote base branch (e.g., <code>origin/main</code>) and correctly handles the exit codes.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">git</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;os/exec&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;syscall&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// getGitDiff executes `git diff` to get the changes between the current branch</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// and the specified remote base branch. It correctly handles the exit codes</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// from the diff command.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">getGitDiff</span><span class="p">(</span><span class="nx">remoteName</span><span class="p">,</span><span class="w"> </span><span class="nx">baseBranch</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// The &#39;...&#39; syntax in git diff is important. It shows the diff between</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// the tip of the current branch and the common ancestor with &#39;remote/base&#39;.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">target</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;%s/%s...&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">remoteName</span><span class="p">,</span><span class="w"> </span><span class="nx">baseBranch</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">cmd</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">exec</span><span class="p">.</span><span class="nf">Command</span><span class="p">(</span><span class="s">&#34;git&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;diff&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">target</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// We use CombinedOutput to capture both stdout and stderr. This is useful</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// for logging the full error message if git fails for reasons other than</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// finding a diff.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">output</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nf">CombinedOutput</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Check if the error is an ExitError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">exitErr</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">err</span><span class="p">.(</span><span class="o">*</span><span class="nx">exec</span><span class="p">.</span><span class="nx">ExitError</span><span class="p">);</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// The command exit with a non-zero status.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// This is expected for `git diff` which returns 1 for differences.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">status</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">exitErr</span><span class="p">.</span><span class="nf">Sys</span><span class="p">().(</span><span class="nx">syscall</span><span class="p">.</span><span class="nx">WaitStatus</span><span class="p">);</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Exit status 1 means differences were found. This is a success case for us.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">status</span><span class="p">.</span><span class="nf">ExitStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="nb">string</span><span class="p">(</span><span class="nx">output</span><span class="p">),</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Any other exit status is a genuine error.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;git diff exited with status %d: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">status</span><span class="p">.</span><span class="nf">ExitStatus</span><span class="p">(),</span><span class="w"> </span><span class="nb">string</span><span class="p">(</span><span class="nx">output</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// This was not an ExitError, but some other error (e.g., command not found).</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to execute git diff: %w, output: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nb">string</span><span class="p">(</span><span class="nx">output</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// If err is nil, it means exit code was 0, so no differences were found.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// We return an empty string and no error.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="nb">string</span><span class="p">(</span><span class="nx">output</span><span class="p">),</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h2 id="4-generating-content-with-an-llm">4. Generating Content with an LLM<a hidden class="anchor" aria-hidden="true" href="#4-generating-content-with-an-llm">#</a></h2>
+<p>With the <code>git diff</code> in hand, we can now leverage a Large Language Model (LLM) to automate the tedious task of writing a pull request title and description. The key to getting reliable, useful output from an LLM is <strong>prompt engineering</strong>.</p>
+<h3 id="prompt-engineering-for-structured-output">Prompt Engineering for Structured Output<a hidden class="anchor" aria-hidden="true" href="#prompt-engineering-for-structured-output">#</a></h3>
+<p>Simply asking an LLM to &ldquo;summarize this diff&rdquo; can yield inconsistent results that are difficult to parse programmatically. A more professional approach is to instruct the model to return its response in a structured format, such as JSON. This ensures the output is predictable and can be easily unmarshaled into a Go struct.</p>
+<p>Here is a well-crafted prompt template designed for this task. It clearly defines the context, the required output format, and the input data.</p>
+<pre tabindex="0"><code>Based on the following git diff, please generate a concise pull request title and a structured, detailed description. The description should be in Markdown format and include a summary of changes and a &#34;How to Test&#34; section.
+
+Return your response as a single JSON object with two keys: &#34;title&#34; and &#34;description&#34;.
+
+--- GIT DIFF ---
+{{.Diff}}
+</code></pre><h3 id="interacting-with-the-openai-api">Interacting with the OpenAI API<a hidden class="anchor" aria-hidden="true" href="#interacting-with-the-openai-api">#</a></h3>
+<p>We will use the official <code>openai-go</code> library to communicate with the OpenAI API.[6] The library simplifies the process of making authenticated requests and handling responses. The client can be configured to automatically read the <code>OPENAI_API_KEY</code> from the environment, which we set up in our configuration section.[6]</p>
+<p>The core of the interaction is creating a <code>ChatCompletionRequest</code>. We specify the model we want to use (e.g., <code>gpt-4o</code>), the role of the message (<code>user</code>), and the content, which will be our formatted prompt.[26, 27]</p>
+<p>The function below, <code>generateContent</code>, encapsulates this entire process.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">llm</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;context&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;encoding/json&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;[github.com/openai/openai-go](https://github.com/openai/openai-go)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// ContentResponse defines the structure for the JSON response from the LLM.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">ContentResponse</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">Title</span><span class="w">       </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;title&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">Description</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;description&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// generateContent sends the git diff to the OpenAI API and asks for a PR title</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// and description in a structured JSON format.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">generateContent</span><span class="p">(</span><span class="nx">diff</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">apiKey</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">model</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">apiKey</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;OpenAI API key is not configured&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">client</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">openai</span><span class="p">.</span><span class="nf">NewClient</span><span class="p">(</span><span class="nx">openai</span><span class="p">.</span><span class="nf">WithKey</span><span class="p">(</span><span class="nx">apiKey</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">ctx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">prompt</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">`
+</span></span></span><span class="line"><span class="cl"><span class="s">Based on the following git diff, please generate a concise pull request title and a structured, detailed description. The description should be in Markdown format and include a summary of changes and a &#34;How to Test&#34; section.
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">Return your response as a single JSON object with two keys: &#34;title&#34; and &#34;description&#34;.
+</span></span></span><span class="line"><span class="cl"><span class="s">
+</span></span></span><span class="line"><span class="cl"><span class="s">--- GIT DIFF ---
+</span></span></span><span class="line"><span class="cl"><span class="s">%s
+</span></span></span><span class="line"><span class="cl"><span class="s">`</span><span class="p">,</span><span class="w"> </span><span class="nx">diff</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">messages</span><span class="w"> </span><span class="o">:=</span><span class="nx">openai</span><span class="p">.</span><span class="nx">ChatCompletionMessageParamUnion</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">openai</span><span class="p">.</span><span class="nf">UserMessage</span><span class="p">(</span><span class="nx">prompt</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">params</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">openai</span><span class="p">.</span><span class="nx">ChatCompletionNewParams</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">Model</span><span class="p">:</span><span class="w">    </span><span class="nx">model</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">Messages</span><span class="p">:</span><span class="w"> </span><span class="nx">messages</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">resp</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Chat</span><span class="p">.</span><span class="nx">Completions</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">params</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;chat completion request failed: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Choices</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">|</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">|</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">Choices</span><span class="p">.</span><span class="nx">Message</span><span class="p">.</span><span class="nx">Content</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;received an empty response from OpenAI API&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">var</span><span class="w"> </span><span class="nx">contentResp</span><span class="w"> </span><span class="nx">ContentResponse</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">json</span><span class="p">.</span><span class="nf">Unmarshal</span><span class="p">(</span><span class="nb">byte</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Choices</span><span class="p">.</span><span class="nx">Message</span><span class="p">.</span><span class="nx">Content</span><span class="p">),</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">contentResp</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Fallback if JSON parsing fails</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="s">&#34;AI-Generated Content&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">Choices</span><span class="p">.</span><span class="nx">Message</span><span class="p">.</span><span class="nx">Content</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="nx">contentResp</span><span class="p">.</span><span class="nx">Title</span><span class="p">,</span><span class="w"> </span><span class="nx">contentResp</span><span class="p">.</span><span class="nx">Description</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h2 id="5-the-bubble-tea-tui-state-management">5. The Bubble Tea TUI: State Management<a hidden class="anchor" aria-hidden="true" href="#5-the-bubble-tea-tui-state-management">#</a></h2>
+<p>The heart of our interactive tool is the Text-based User Interface (TUI), built with Bubble Tea. This framework is based on The Elm Architecture, a functional design pattern that is exceptionally well-suited for managing state in interactive applications.[2, 3]</p>
+<h3 id="core-concepts-of-the-elm-architecture">Core Concepts of The Elm Architecture<a hidden class="anchor" aria-hidden="true" href="#core-concepts-of-the-elm-architecture">#</a></h3>
+<p>A Bubble Tea program is structured around three key methods defined on a <code>Model</code> [3]:</p>
+<ul>
+<li><strong><code>Model</code></strong>: A struct that holds the entire state of the application. It is the single source of truth.
+<ul>
+<li><strong><code>Init</code></strong>: A function that is called once when the program starts. It returns an initial <code>tea.Cmd</code> to perform any startup I/O.</li>
+<li><strong><code>Update</code></strong>: The state transition function. It is called whenever an event (<code>tea.Msg</code>) occurs (like a keypress or a response from an API call). It processes the message, updates the model, and can return another <code>tea.Cmd</code> to trigger subsequent actions.</li>
+<li><strong><code>View</code></strong>: A function that takes the current <code>Model</code> and returns a <code>string</code> representing the UI to be rendered on the screen.</li>
+</ul>
+</li>
+</ul>
+<h3 id="defining-the-application-state-model">Defining the Application State (<code>Model</code>)<a hidden class="anchor" aria-hidden="true" href="#defining-the-application-state-model">#</a></h3>
+<p>Our <code>Model</code> struct must be comprehensive enough to track every piece of information required throughout the tool&rsquo;s lifecycle. This includes not just UI elements like a spinner, but also the application&rsquo;s current state, data fetched from services, and any errors that occur. We use an <code>enum</code> for the <code>state</code> to create a clear and manageable state machine.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="s">&#34;[github.com/charmbracelet/bubbles/spinner](https://github.com/charmbracelet/bubbles/spinner)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">tea</span><span class="w"> </span><span class="s">&#34;[github.com/charmbracelet/bubbletea](https://github.com/charmbracelet/bubbletea)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// state represents the current step in our workflow.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">const</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateFetchingDiff</span><span class="w"> </span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">iota</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateGeneratingContent</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateReadyForApproval</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateCreatingPR</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateCreatingJiraTicket</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateDone</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">stateError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Model holds the application&#39;s complete state.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Model</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">state</span><span class="w">         </span><span class="nx">state</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">spinner</span><span class="w">       </span><span class="nx">spinner</span><span class="p">.</span><span class="nx">Model</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">err</span><span class="w">           </span><span class="kt">error</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">gitDiff</span><span class="w">       </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">prTitle</span><span class="w">       </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">prDescription</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">prURL</span><span class="w">         </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">jiraURL</span><span class="w">       </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Add other fields like config here</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="the-update-function-as-a-state-machine">The <code>Update</code> Function as a State Machine<a hidden class="anchor" aria-hidden="true" href="#the-update-function-as-a-state-machine">#</a></h3>
+<p>The <code>Update</code> function is the engine of our application. It acts as a state machine, routing logic based on two factors: the current application state (<code>m.state</code>) and the type of the incoming message (<code>tea.Msg</code>). This is typically implemented as a nested <code>switch</code> statement.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// A skeleton of the Update function demonstrating the state machine structure.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Model</span><span class="p">)</span><span class="w"> </span><span class="nf">Update</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Msg</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">tea</span><span class="p">.</span><span class="nx">Model</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">switch</span><span class="w"> </span><span class="nx">msg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.(</span><span class="kd">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">case</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">KeyMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Handle global key presses like &#39;q&#39; or &#39;ctrl+c&#39; to quit.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Also handle context-specific keys based on m.state.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">switch</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nf">String</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">case</span><span class="w"> </span><span class="s">&#34;q&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;ctrl+c&#34;</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Custom messages from our commands</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">case</span><span class="w"> </span><span class="nx">diffFetchedMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Logic for when the git diff is ready</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">case</span><span class="w"> </span><span class="nx">contentGeneratedMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Logic for when the LLM content is ready</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="cp">//... other custom message types</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Handle spinner animation</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">var</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Cmd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">m</span><span class="p">.</span><span class="nx">spinner</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">spinner</span><span class="p">.</span><span class="nf">Update</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="the-power-of-teacmd-for-asynchronous-io">The Power of <code>tea.Cmd</code> for Asynchronous I/O<a hidden class="anchor" aria-hidden="true" href="#the-power-of-teacmd-for-asynchronous-io">#</a></h3>
+<p>As established in the architecture section, <code>tea.Cmd</code> is the mechanism for performing blocking I/O without freezing the UI.[8, 28] A <code>tea.Cmd</code> is simply a function that returns a <code>tea.Msg</code>. The Bubble Tea runtime executes this function in a background goroutine. When the function completes, its return value (the <code>tea.Msg</code>) is sent back to the <code>Update</code> loop for processing. This event-driven cycle keeps the application responsive at all times.</p>
+<p>The following table visualizes the application&rsquo;s state-transition logic, showing how states, commands, and messages are chained together to form the complete workflow.</p>
+<table>
+  <thead>
+      <tr>
+          <th style="text-align: left">Current State (<code>m.state</code>)</th>
+          <th style="text-align: left">Triggering <code>tea.Cmd</code> (Initiates Action)</th>
+          <th style="text-align: left">Completion <code>tea.Msg</code> (Signals Result)</th>
+          <th style="text-align: left">Next State</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td style="text-align: left"><code>stateFetchingDiff</code></td>
+          <td style="text-align: left"><code>getGitDiffCmd()</code></td>
+          <td style="text-align: left"><code>diffFetchedMsg{}</code> or <code>errorMsg{}</code></td>
+          <td style="text-align: left"><code>stateGeneratingContent</code> or <code>stateError</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>stateGeneratingContent</code></td>
+          <td style="text-align: left"><code>generateContentCmd()</code></td>
+          <td style="text-align: left"><code>contentGeneratedMsg{}</code> or <code>errorMsg{}</code></td>
+          <td style="text-align: left"><code>stateReadyForApproval</code> or <code>stateError</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>stateReadyForApproval</code></td>
+          <td style="text-align: left">(User Input: <code>tea.KeyMsg</code>)</td>
+          <td style="text-align: left"><code>createPRMsg{}</code></td>
+          <td style="text-align: left"><code>stateCreatingPR</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>stateCreatingPR</code></td>
+          <td style="text-align: left"><code>createPRCmd()</code></td>
+          <td style="text-align: left"><code>prCreatedMsg{}</code> or <code>errorMsg{}</code></td>
+          <td style="text-align: left"><code>stateCreatingJiraTicket</code> or <code>stateError</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>stateCreatingJiraTicket</code></td>
+          <td style="text-align: left"><code>createJiraTicketCmd()</code></td>
+          <td style="text-align: left"><code>jiraTicketCreatedMsg{}</code> or <code>errorMsg{}</code></td>
+          <td style="text-align: left"><code>stateDone</code> or <code>stateError</code></td>
+      </tr>
+      <tr>
+          <td style="text-align: left"><code>stateDone</code> / <code>stateError</code></td>
+          <td style="text-align: left"><code>tea.Quit</code></td>
+          <td style="text-align: left">(None)</td>
+          <td style="text-align: left">(Exit)</td>
+      </tr>
+  </tbody>
+</table>
+<h2 id="6-integrating-with-github-and-jira">6. Integrating with GitHub and Jira<a hidden class="anchor" aria-hidden="true" href="#6-integrating-with-github-and-jira">#</a></h2>
+<p>To automate our workflow, we need to create self-contained functions that interact with the GitHub and Jira APIs. Encapsulating this logic into dedicated functions improves modularity and makes our main TUI logic cleaner.</p>
+<h3 id="opening-a-pull-request-with-go-github">Opening a Pull Request with <code>go-github</code><a hidden class="anchor" aria-hidden="true" href="#opening-a-pull-request-with-go-github">#</a></h3>
+<p>We will use the <code>go-github</code> library to create a pull request. Authentication is handled by providing a GitHub Personal Access Token (PAT) as an OAuth2 token.[11] The <code>PullRequests.Create</code> method is the core of this operation. It requires a <code>NewPullRequest</code> struct, where we must provide the <code>Title</code>, <code>Body</code>, <code>Head</code> (the feature branch), and <code>Base</code> (the target branch). Note that the fields in this struct are pointers, so we use the <code>github.String()</code> helper to convert our string literals.[11]</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">github</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;context&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;[github.com/google/go-github/v72/github](https://github.com/google/go-github/v72/github)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;golang.org/x/oauth2&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// createPullRequest creates a new pull request on GitHub.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">createPullRequest</span><span class="p">(</span><span class="nx">token</span><span class="p">,</span><span class="w"> </span><span class="nx">owner</span><span class="p">,</span><span class="w"> </span><span class="nx">repo</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="p">,</span><span class="w"> </span><span class="nx">description</span><span class="p">,</span><span class="w"> </span><span class="nx">headBranch</span><span class="p">,</span><span class="w"> </span><span class="nx">baseBranch</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">ctx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">ts</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">oauth2</span><span class="p">.</span><span class="nf">StaticTokenSource</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="o">&amp;</span><span class="nx">oauth2</span><span class="p">.</span><span class="nx">Token</span><span class="p">{</span><span class="nx">AccessToken</span><span class="p">:</span><span class="w"> </span><span class="nx">token</span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">oauth2</span><span class="p">.</span><span class="nf">NewClient</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">ts</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">client</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">github</span><span class="p">.</span><span class="nf">NewClient</span><span class="p">(</span><span class="nx">tc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">newPR</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">github</span><span class="p">.</span><span class="nx">NewPullRequest</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Title</span><span class="p">:</span><span class="w"> </span><span class="nx">github</span><span class="p">.</span><span class="nf">String</span><span class="p">(</span><span class="nx">title</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Body</span><span class="p">:</span><span class="w">  </span><span class="nx">github</span><span class="p">.</span><span class="nf">String</span><span class="p">(</span><span class="nx">description</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Head</span><span class="p">:</span><span class="w">  </span><span class="nx">github</span><span class="p">.</span><span class="nf">String</span><span class="p">(</span><span class="nx">headBranch</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Base</span><span class="p">:</span><span class="w">  </span><span class="nx">github</span><span class="p">.</span><span class="nf">String</span><span class="p">(</span><span class="nx">baseBranch</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">pr</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">PullRequests</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">owner</span><span class="p">,</span><span class="w"> </span><span class="nx">repo</span><span class="p">,</span><span class="w"> </span><span class="nx">newPR</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to create pull request: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">pr</span><span class="p">.</span><span class="nf">GetHTMLURL</span><span class="p">(),</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="creating-a-jira-ticket-with-go-jira">Creating a Jira Ticket with <code>go-jira</code><a hidden class="anchor" aria-hidden="true" href="#creating-a-jira-ticket-with-go-jira">#</a></h3>
+<p>For Jira integration, we use the <code>go-jira</code> library. Authentication for Jira Cloud is typically done with a user&rsquo;s email address and an API Token generated from their Atlassian account settings.[18, 29, 30] The <code>Issue.Create</code> method takes a <code>jira.Issue</code> struct. We populate the <code>Fields</code> of this struct with the necessary information: <code>Project</code> (by its key), <code>IssueType</code> (by name), <code>Summary</code> (the title), and <code>Description</code>.[31, 32]</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">jira</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;[github.com/andygrunwald/go-jira](https://github.com/andygrunwald/go-jira)&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// createJiraTicket creates a new issue in a Jira project.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">createJiraTicket</span><span class="p">(</span><span class="nx">jiraURL</span><span class="p">,</span><span class="w"> </span><span class="nx">user</span><span class="p">,</span><span class="w"> </span><span class="nx">token</span><span class="p">,</span><span class="w"> </span><span class="nx">title</span><span class="p">,</span><span class="w"> </span><span class="nx">description</span><span class="p">,</span><span class="w"> </span><span class="nx">projectKey</span><span class="p">,</span><span class="w"> </span><span class="nx">issueType</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">tp</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">jira</span><span class="p">.</span><span class="nx">BasicAuthTransport</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Username</span><span class="p">:</span><span class="w"> </span><span class="nx">user</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Password</span><span class="p">:</span><span class="w"> </span><span class="nx">token</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">client</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">jira</span><span class="p">.</span><span class="nf">NewClient</span><span class="p">(</span><span class="nx">tp</span><span class="p">.</span><span class="nf">Client</span><span class="p">(),</span><span class="w"> </span><span class="nx">jiraURL</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to create Jira client: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">issueFields</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">jira</span><span class="p">.</span><span class="nx">IssueFields</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Project</span><span class="p">:</span><span class="w"> </span><span class="nx">jira</span><span class="p">.</span><span class="nx">Project</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">Key</span><span class="p">:</span><span class="w"> </span><span class="nx">projectKey</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Summary</span><span class="p">:</span><span class="w">     </span><span class="nx">title</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Description</span><span class="p">:</span><span class="w"> </span><span class="nx">description</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Type</span><span class="p">:</span><span class="w"> </span><span class="nx">jira</span><span class="p">.</span><span class="nx">IssueType</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">Name</span><span class="p">:</span><span class="w"> </span><span class="nx">issueType</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">issue</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">jira</span><span class="p">.</span><span class="nx">Issue</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Fields</span><span class="p">:</span><span class="w"> </span><span class="nx">issueFields</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">newIssue</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">client</span><span class="p">.</span><span class="nx">Issue</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">issue</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to create Jira ticket: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The URL to the newly created issue</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">ticketURL</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;%s/browse/%s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">jiraURL</span><span class="p">,</span><span class="w"> </span><span class="nx">newIssue</span><span class="p">.</span><span class="nx">Key</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">ticketURL</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h2 id="7-bringing-it-all-together-in-the-update-function">7. Bringing It All Together in the Update Function<a hidden class="anchor" aria-hidden="true" href="#7-bringing-it-all-together-in-the-update-function">#</a></h2>
+<p>With all the building blocks in place—Git interaction, LLM content generation, and API clients—we can now assemble the complete <code>Update</code> function. This function is the heart of the TUI, orchestrating the entire workflow by handling messages and managing state transitions. The following code is a detailed, commented implementation that demonstrates the full, event-driven flow.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// This is a simplified but functional version of the main Update function.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// It shows how messages from commands drive the state machine.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">m</span><span class="w"> </span><span class="nx">Model</span><span class="p">)</span><span class="w"> </span><span class="nf">Update</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Msg</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">tea</span><span class="p">.</span><span class="nx">Model</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Cmd</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">switch</span><span class="w"> </span><span class="nx">msg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.(</span><span class="kd">type</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Handle key presses from the user</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">KeyMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">switch</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nf">String</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="s">&#34;q&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;ctrl+c&#34;</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">case</span><span class="w"> </span><span class="s">&#34;y&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;enter&#34;</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// If we are in the approval state, &#39;y&#39; or &#39;enter&#39; triggers the next step.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nx">stateReadyForApproval</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateCreatingPR</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">m</span><span class="p">.</span><span class="nx">statusMessage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;Creating pull request...&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// Return a command to create the pull request.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nf">createPRCmd</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">config</span><span class="p">,</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">prTitle</span><span class="p">,</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">prDescription</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Handle the completion of the `getGitDiff` command</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nx">diffFetchedMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">diff</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">statusMessage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;No git diff found. Nothing to do.&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateDone</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">gitDiff</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">diff</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateGeneratingContent</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">statusMessage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;Generating title and description with AI...&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// Now, return a command to generate content with the LLM.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nf">generateContentCmd</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">config</span><span class="p">,</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">gitDiff</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Handle the completion of the LLM content generation</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nx">contentGeneratedMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">prTitle</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">title</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">prDescription</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">description</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateReadyForApproval</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// No command is returned here; we wait for user input.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Handle the completion of the pull request creation</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nx">prCreatedMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">prURL</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">url</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateCreatingJiraTicket</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">statusMessage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;Pull request created! Creating Jira ticket...&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// Immediately return a command to create the Jira ticket.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nf">createJiraTicketCmd</span><span class="p">(</span><span class="nx">m</span><span class="p">.</span><span class="nx">config</span><span class="p">,</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">prTitle</span><span class="p">,</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">prDescription</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Handle the completion of the Jira ticket creation</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nx">jiraTicketCreatedMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">jiraURL</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">url</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateDone</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">statusMessage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#34;All done!&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// The workflow is complete, so we quit.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Handle any generic error message from our commands</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="nx">errorMsg</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">err</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">msg</span><span class="p">.</span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">m</span><span class="p">.</span><span class="nx">state</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">stateError</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Quit</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Update the spinner animation on every tick</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="kd">var</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="nx">tea</span><span class="p">.</span><span class="nx">Cmd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">m</span><span class="p">.</span><span class="nx">spinner</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">m</span><span class="p">.</span><span class="nx">spinner</span><span class="p">.</span><span class="nf">Update</span><span class="p">(</span><span class="nx">msg</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">m</span><span class="p">,</span><span class="w"> </span><span class="nx">cmd</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>This implementation clearly shows the reactive nature of the application. The <code>Update</code> function does not contain a linear script; instead, it responds to a series of events, each one triggering the next logical step in the workflow. The robust error handling ensures that if any step fails, the application captures the error, updates its state accordingly, and provides clear feedback to the user instead of crashing.</p>
+<h2 id="conclusion">Conclusion<a hidden class="anchor" aria-hidden="true" href="#conclusion">#</a></h2>
+<p>By following this guide, a developer can construct a sophisticated and genuinely useful CLI tool that directly addresses a common point of friction in the software development lifecycle. We have built more than just a script; we have engineered a robust, AI-augmented workflow accelerator. The final product consolidates a multi-step, multi-application process into a single, fluid command, saving time and reducing the cognitive overhead of context switching.</p>
+<p>The key achievements and architectural principles demonstrated include:</p>
+<ul>
+<li><strong>Asynchronous Orchestration</strong>: Leveraging Bubble Tea&rsquo;s command-message pattern to build a responsive, non-blocking TUI that orchestrates multiple long-running I/O operations.
+<ul>
+<li><strong>Secure and Flexible Configuration</strong>: Implementing a professional, layered configuration system with Viper and GoDotEnv that decouples the application from its environment and handles secrets securely.</li>
+<li><strong>Modular and Testable Design</strong>: Encapsulating discrete functionalities—Git interaction, API clients, and TUI logic—into separate modules, leading to cleaner and more maintainable code.</li>
+<li><strong>AI-Powered Automation</strong>: Utilizing an LLM not just as a novelty, but as a practical tool to automate the creative and often tedious task of writing high-quality documentation.</li>
+</ul>
+</li>
+</ul>
+<p>This project serves as a strong foundation that can be extended with even more powerful features. Potential future enhancements include:</p>
+<ul>
+<li><strong>Interactive Content Editing</strong>: Incorporate a <code>textarea</code> component from the <code>bubbles</code> library to allow the user to review and edit the AI-generated title and description directly within the TUI before submission.[15]
+<ul>
+<li><strong>First-Run Configuration Wizard</strong>: Build a separate Bubble Tea model that runs on the tool&rsquo;s first execution, guiding the user through setting up their API keys, default project, and other preferences.</li>
+<li><strong>Multi-Platform Support</strong>: Extend the tool&rsquo;s capabilities by implementing new API clients for other services like GitLab, Bitbucket, or alternative project management platforms such as Linear or Asana.</li>
+<li><strong>Git Hook Integration</strong>: For an even more seamless experience, the tool could be integrated as a <code>pre-push</code> git hook, automatically launching the PR and ticket creation process whenever new commits are pushed to a remote repository.</li>
+</ul>
+</li>
+</ul>
+<!-- end list -->
+<pre tabindex="0"><code></code></pre>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/articles/tags/llm-bubbletea-jira/">Llm, Bubbletea, Jira</a></li>
+    </ul>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2025 <a href="http://localhost:1313/articles/">elkokito</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

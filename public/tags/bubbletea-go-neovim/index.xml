@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Bubbletea, Go, Neovim on elkokito</title>
+    <link>http://localhost:1313/articles/tags/bubbletea-go-neovim/</link>
+    <description>Recent content in Bubbletea, Go, Neovim on elkokito</description>
+    <generator>Hugo -- 0.151.0</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 15 Jun 2025 00:00:00 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/articles/tags/bubbletea-go-neovim/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>keybind</title>
+      <link>http://localhost:1313/articles/bubbletea/bubble-keybind/</link>
+      <pubDate>Sun, 15 Jun 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/articles/bubbletea/bubble-keybind/</guid>
+      <description>&lt;h2 id=&#34;declarative-keybindings-in-bubble-tea-a-guide-to-the-bubbleskey-package&#34;&gt;Declarative Keybindings in Bubble Tea: A Guide to the &lt;code&gt;bubbles/key&lt;/code&gt; Package&lt;/h2&gt;
+&lt;p&gt;Building a rich, interactive terminal user interface (TUI) with Bubble Tea is a rewarding experience. As your application grows beyond simple views, you&amp;rsquo;ll inevitably need to handle user input in a structured, maintainable way. While you can handle &lt;code&gt;tea.KeyMsg&lt;/code&gt; events directly with a &lt;code&gt;switch&lt;/code&gt; statement, this can become cumbersome, especially when dealing with multiple components, context-sensitive actions, and help menus.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>neovim within bubble</title>
+      <link>http://localhost:1313/articles/bubbletea/neovim-editing/</link>
+      <pubDate>Sat, 14 Jun 2025 00:00:00 +0000</pubDate>
+      <guid>http://localhost:1313/articles/bubbletea/neovim-editing/</guid>
+      <description>&lt;h2 id=&#34;the-neovim-in-tui-symbiosis-seamlessly-editing-text-in-go-with-bubble-tea&#34;&gt;The Neovim-in-TUI Symbiosis: Seamlessly Editing Text in Go with Bubble Tea&lt;/h2&gt;
+&lt;p&gt;Terminal User Interfaces (TUIs) built in Go are powerful, fast, and portable. Frameworks like &lt;a href=&#34;https://github.com/charmbracelet/bubbletea&#34;&gt;Bubble Tea&lt;/a&gt; have made creating them more accessible than ever. However, one common challenge is rich text input. While components like the &lt;code&gt;textarea&lt;/code&gt; from the &lt;a href=&#34;https://github.com/charmbracelet/bubbles&#34;&gt;Bubbles&lt;/a&gt; library are excellent for simple, multi-line input, they can&amp;rsquo;t compete with the power and familiarity of a dedicated terminal editor like Neovim.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

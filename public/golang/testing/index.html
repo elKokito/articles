@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en" dir="auto">
+
+<head><script src="/articles/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=articles/livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>testing | elkokito</title>
+<meta name="keywords" content="golang">
+<meta name="description" content="Mastering Go&rsquo;s Idiomatic Testing: A Guide to Table-Driven &amp; Sub-Tests
+In the world of DevOps, where reliability and maintainability are paramount, the way we test our code is as important as the code itself. For engineers coming from languages like Python or Java, the testing landscape in Go can feel both refreshingly simple and subtly different. Go eschews complex frameworks and opts for a powerful, built-in approach that champions clarity and scalability. At the heart of this philosophy lies a simple yet profoundly effective pattern: table-driven tests combined with subtests.">
+<meta name="author" content="elkokito">
+<link rel="canonical" href="http://localhost:1313/articles/golang/testing/">
+<link crossorigin="anonymous" href="/articles/assets/css/stylesheet.a090830a421002426baafbd314e38f149d77b4c48a12ee9312700d770b27fb26.css" integrity="sha256-oJCDCkIQAkJrqvvTFOOPFJ13tMSKEu6TEnANdwsn&#43;yY=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/articles/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/articles/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/articles/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/articles/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/articles/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/articles/golang/testing/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ 
+    startOnLoad: true,
+    theme: 'dark'
+  });
+</script>
+
+
+</head>
+
+<body class=" dark" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/articles/" accesskey="h" title="elkokito (Alt + H)">elkokito</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/articles/golang/" title="Golang">
+                    <span>Golang</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/flutter/" title="Flutter">
+                    <span>Flutter</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/articles/bubbletea/" title="Bubble Tea">
+                    <span>Bubble Tea</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <div class="breadcrumbs"><a href="http://localhost:1313/articles/">Home</a>&nbsp;»&nbsp;<a href="http://localhost:1313/articles/golang/">Golangs</a></div>
+    <h1 class="post-title entry-hint-parent">
+      testing
+    </h1>
+    <div class="post-meta"><span title='2025-06-17 00:00:00 +0000 UTC'>June 17, 2025</span>&nbsp;·&nbsp;<span>15 min</span>&nbsp;·&nbsp;<span>elkokito</span>
+
+</div>
+  </header> <div class="toc">
+    <details >
+        <summary accesskey="c" title="(Alt + C)">
+            <span class="details">Table of Contents</span>
+        </summary>
+
+        <div class="inner"><ul>
+                <li>
+                    <a href="#mastering-gos-idiomatic-testing-a-guide-to-table-driven--sub-tests" aria-label="Mastering Go&rsquo;s Idiomatic Testing: A Guide to Table-Driven &amp; Sub-Tests">Mastering Go&rsquo;s Idiomatic Testing: A Guide to Table-Driven &amp; Sub-Tests</a><ul>
+                        
+                <li>
+                    <a href="#executive-overview" aria-label="Executive Overview">Executive Overview</a></li>
+                <li>
+                    <a href="#deep-dive-implementation" aria-label="Deep-Dive Implementation">Deep-Dive Implementation</a><ul>
+                        
+                <li>
+                    <a href="#the-core-mechanic-slices-of-structs" aria-label="The Core Mechanic: Slices of Structs">The Core Mechanic: Slices of Structs</a></li>
+                <li>
+                    <a href="#bringing-tests-to-life-with-trun" aria-label="Bringing Tests to Life with t.Run">Bringing Tests to Life with t.Run</a></li>
+                <li>
+                    <a href="#how-it-differs-a-devops-perspective" aria-label="How It Differs: A DevOps Perspective">How It Differs: A DevOps Perspective</a></li></ul>
+                </li>
+                <li>
+                    <a href="#idiomatic-code-walk-through" aria-label="Idiomatic Code Walk-through">Idiomatic Code Walk-through</a><ul>
+                        
+                <li>
+                    <a href="#example-parsing-a-server-configuration" aria-label="Example: Parsing a Server Configuration">Example: Parsing a Server Configuration</a></li>
+                <li>
+                    <a href="#running-the-tests-from-local-to-cicd" aria-label="Running the Tests: From Local to CI/CD">Running the Tests: From Local to CI/CD</a><ul>
+                        
+                <li>
+                    <a href="#cicd-considerations" aria-label="CI/CD Considerations">CI/CD Considerations</a></li></ul>
+                </li></ul>
+                </li>
+                <li>
+                    <a href="#gotchas--best-practices" aria-label="Gotchas &amp; Best Practices">Gotchas &amp; Best Practices</a><ul>
+                        
+                <li>
+                    <a href="#1-the-loop-variable-capture-pitfall-in-parallel-tests" aria-label="1. The Loop Variable Capture Pitfall in Parallel Tests">1. The Loop Variable Capture Pitfall in Parallel Tests</a></li>
+                <li>
+                    <a href="#2-opaque-test-failure-messages" aria-label="2. Opaque Test Failure Messages">2. Opaque Test Failure Messages</a></li>
+                <li>
+                    <a href="#3-improper-error-comparison" aria-label="3. Improper Error Comparison">3. Improper Error Comparison</a></li>
+                <li>
+                    <a href="#4-modifying-shared-state-between-subtests" aria-label="4. Modifying Shared State Between Subtests">4. Modifying Shared State Between Subtests</a></li>
+                <li>
+                    <a href="#5-test-naming-and-readability" aria-label="5. Test Naming and Readability">5. Test Naming and Readability</a></li></ul>
+                </li>
+                <li>
+                    <a href="#code-examples-gotchas-and-remediation" aria-label="Code Examples: Gotchas and Remediation">Code Examples: Gotchas and Remediation</a><ul>
+                        
+                <li>
+                    <a href="#pitfall-1-loop-variable-capture-in-parallel-tests" aria-label="Pitfall 1: Loop Variable Capture in Parallel Tests">Pitfall 1: Loop Variable Capture in Parallel Tests</a><ul>
+                        
+                <li>
+                    <a href="#-incorrect-code-classic-bug" aria-label="❌ Incorrect Code (Classic Bug)">❌ Incorrect Code (Classic Bug)</a></li>
+                <li>
+                    <a href="#-remediated-code" aria-label="✅ Remediated Code">✅ Remediated Code</a></li></ul>
+                </li>
+                <li>
+                    <a href="#pitfall-2-opaque-test-failure-messages" aria-label="Pitfall 2: Opaque Test Failure Messages">Pitfall 2: Opaque Test Failure Messages</a><ul>
+                        
+                <li>
+                    <a href="#-incorrect-code" aria-label="❌ Incorrect Code">❌ Incorrect Code</a></li>
+                <li>
+                    <a href="#-remediated-code-1" aria-label="✅ Remediated Code">✅ Remediated Code</a></li></ul>
+                </li>
+                <li>
+                    <a href="#pitfall-3-improper-error-comparison" aria-label="Pitfall 3: Improper Error Comparison">Pitfall 3: Improper Error Comparison</a><ul>
+                        
+                <li>
+                    <a href="#-incorrect-code-1" aria-label="❌ Incorrect Code">❌ Incorrect Code</a></li>
+                <li>
+                    <a href="#-remediated-code-2" aria-label="✅ Remediated Code">✅ Remediated Code</a></li></ul>
+                </li>
+                <li>
+                    <a href="#pitfall-4-modifying-shared-state-between-subtests" aria-label="Pitfall 4: Modifying Shared State Between Subtests">Pitfall 4: Modifying Shared State Between Subtests</a><ul>
+                        
+                <li>
+                    <a href="#-incorrect-code-2" aria-label="❌ Incorrect Code">❌ Incorrect Code</a></li>
+                <li>
+                    <a href="#-remediated-code-3" aria-label="✅ Remediated Code">✅ Remediated Code</a>
+                </li>
+            </ul>
+            </li>
+            </ul>
+            </li>
+            </ul>
+            </li>
+            </ul>
+        </div>
+    </details>
+</div>
+
+  <div class="post-content"><h1 id="mastering-gos-idiomatic-testing-a-guide-to-table-driven--sub-tests">Mastering Go&rsquo;s Idiomatic Testing: A Guide to Table-Driven &amp; Sub-Tests<a hidden class="anchor" aria-hidden="true" href="#mastering-gos-idiomatic-testing-a-guide-to-table-driven--sub-tests">#</a></h1>
+<p>In the world of DevOps, where reliability and maintainability are paramount, the way we test our code is as important as the code itself. For engineers coming from languages like Python or Java, the testing landscape in Go can feel both refreshingly simple and subtly different. Go eschews complex frameworks and opts for a powerful, built-in approach that champions clarity and scalability. At the heart of this philosophy lies a simple yet profoundly effective pattern: <strong>table-driven tests</strong> combined with <strong>subtests</strong>.</p>
+<p>This combination is the idiomatic standard for writing tests in Go. It provides a structured, readable, and highly maintainable way to cover a wide range of inputs and expected outcomes for a single function. By mastering this technique, you can write comprehensive test suites that are easy to extend and debug, making your Go applications more robust and reliable—a core goal of any DevOps practice.</p>
+<hr>
+<h2 id="executive-overview">Executive Overview<a hidden class="anchor" aria-hidden="true" href="#executive-overview">#</a></h2>
+<p>Table-driven testing is a style where you define a collection of test cases—the &ldquo;table&rdquo;—as a slice of structs. Each struct in the slice represents a complete test case, containing the inputs for the function under test, the expected output, and often a descriptive name. The test function then iterates over this table, executing each case one by one. This approach keeps your test logic concise and separate from the test data, making it incredibly easy to add new scenarios without duplicating code. You simply add another struct to the slice.</p>
+<p>The real power of this pattern is unlocked when combined with <strong>subtests</strong>, a feature introduced in Go 1.7 via the <code>t.Run</code> method. Instead of running all test cases within a single, monolithic test function, <code>t.Run</code> allows you to create a distinct, nested test for each entry in your table. These subtests are treated as individual test functions by the Go tooling. This means they are reported on separately, providing clearer and more granular feedback on failures. You can even run a specific subtest from the command line, which is invaluable for quickly debugging a particular failing case without running the entire suite.</p>
+<p>For a DevOps engineer, this pattern directly supports key principles. It promotes <strong>Don&rsquo;t Repeat Yourself (DRY)</strong> by centralizing test logic. It enhances <strong>clarity and maintainability</strong>, as the table structure makes it trivial to understand the function&rsquo;s expected behavior across various inputs. Furthermore, the isolation provided by subtests simplifies debugging and integrates seamlessly into CI/CD pipelines, where clear, actionable test-failure reports are crucial for rapid feedback and deployment cycles. This built-in, convention-over-configuration approach is quintessentially Go, offering a robust testing foundation without the need for external dependencies.</p>
+<hr>
+<h2 id="deep-dive-implementation">Deep-Dive Implementation<a hidden class="anchor" aria-hidden="true" href="#deep-dive-implementation">#</a></h2>
+<p>To truly grasp the power of table-driven tests and subtests, it&rsquo;s essential to understand the mechanics behind them and how they differ from the testing paradigms you might be familiar with in other ecosystems.</p>
+<h3 id="the-core-mechanic-slices-of-structs">The Core Mechanic: Slices of Structs<a hidden class="anchor" aria-hidden="true" href="#the-core-mechanic-slices-of-structs">#</a></h3>
+<p>The foundation of a table-driven test is a slice of anonymous structs. This &ldquo;table&rdquo; holds all the data required for your test cases. A typical structure for a test case includes:</p>
+<ul>
+<li><strong><code>name</code></strong>: A <code>string</code> that provides a descriptive name for the test case. This name is used when creating a subtest and is crucial for identifying which scenario failed.</li>
+<li><strong><code>input</code></strong>: The input value(s) for the function being tested. This can be a single value or a struct if the function takes multiple arguments.</li>
+<li><strong><code>expectedOutput</code></strong>: The result you expect the function to return for the given <code>input</code>.</li>
+<li><strong><code>expectedError</code></strong>: If you expect the function to return an error, this field defines the expected error type or message.</li>
+</ul>
+<p>Let&rsquo;s imagine we&rsquo;re testing a simple function <code>Add(a, b int) int</code>. The test table would look like this:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">tests</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">name</span><span class="w">           </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">a</span><span class="p">,</span><span class="w"> </span><span class="nx">b</span><span class="w">           </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">expectedOutput</span><span class="w"> </span><span class="kt">int</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// ... test cases defined here ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>By defining the test cases as data, you create a clean separation between the testing <em>logic</em> (the loop that runs the tests) and the testing <em>data</em> (the slice of structs). This makes the tests far easier to read and maintain.</p>
+<h3 id="bringing-tests-to-life-with-trun">Bringing Tests to Life with <code>t.Run</code><a hidden class="anchor" aria-hidden="true" href="#bringing-tests-to-life-with-trun">#</a></h3>
+<p>Once the table is defined, the test function iterates over it. Inside the loop, <code>t.Run()</code> is called for each test case.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestAdd</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">tests</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ... struct fields ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ... test cases ...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">tests</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">tc</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Test logic for a single case</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>The <code>t.Run</code> method takes two arguments:</p>
+<ol>
+<li>A <code>string</code> for the subtest&rsquo;s name (we use our <code>tc.name</code> field for this).</li>
+<li>A function literal of type <code>func(t *testing.T)</code>. This is the body of our subtest.</li>
+</ol>
+<p>This structure provides several key benefits:</p>
+<ul>
+<li><strong>Isolation</strong>: Each subtest is a distinct testing scope. A failure in one subtest (e.g., a <code>t.Fatal</code>) will not stop other subtests from running.</li>
+<li><strong>Clear Reporting</strong>: When a test fails, the output clearly indicates which specific subtest failed using a hierarchical name, like <code>TestMyFunction/positive_numbers</code>.</li>
+<li><strong>Targeted Execution</strong>: You can run a specific subtest directly from the command line, which is a massive time-saver for debugging. The command <code>go test -v -run TestMyFunction/specific_case</code> will execute <em>only</em> the subtest named <code>specific_case</code>.</li>
+</ul>
+<h3 id="how-it-differs-a-devops-perspective">How It Differs: A DevOps Perspective<a hidden class="anchor" aria-hidden="true" href="#how-it-differs-a-devops-perspective">#</a></h3>
+<p>For engineers accustomed to other toolchains, Go&rsquo;s approach can feel minimalist.</p>
+<ul>
+<li>
+<p><strong>Compared to Python (<code>pytest</code>)</strong>: In <code>pytest</code>, it&rsquo;s common to use decorators like <code>@pytest.mark.parametrize</code> to achieve a similar outcome. This decorator injects different sets of arguments into a single test function. While effective, it relies on a powerful external framework with its own specific syntax. Go, by contrast, achieves this using standard language features—slices, structs, and loops—making the pattern universally understood by any Go developer without needing to learn a framework&rsquo;s API. There are no &ldquo;fixtures&rdquo; in Go&rsquo;s standard library; setup and teardown are typically handled with helper functions or within the subtest itself using <code>t.Cleanup</code>.</p>
+</li>
+<li>
+<p><strong>Compared to Java (<code>JUnit</code>)</strong>: JUnit often uses annotations like <code>@Test</code> and <code>@ParameterizedTest</code>. While JUnit 5&rsquo;s parameterized tests are functionally similar to Go&rsquo;s table-driven tests, the Java ecosystem often encourages a more verbose, class-based structure for tests. Go&rsquo;s file-based <code>*_test.go</code> convention and the straightforward data structure of the table often result in less boilerplate and a more direct representation of the test cases.</p>
+</li>
+</ul>
+<p>The key takeaway is that Go&rsquo;s testing style is deeply integrated with the language itself. It favors directness and simplicity, leveraging core language constructs over specialized syntax or third-party frameworks. This aligns perfectly with the DevOps mindset of using simple, robust, and transparent tools.</p>
+<hr>
+<h2 id="idiomatic-code-walk-through">Idiomatic Code Walk-through<a hidden class="anchor" aria-hidden="true" href="#idiomatic-code-walk-through">#</a></h2>
+<p>Let&rsquo;s apply this pattern to a practical scenario relevant to DevOps: parsing a simple YAML configuration file that defines a server&rsquo;s properties.</p>
+<h3 id="example-parsing-a-server-configuration">Example: Parsing a Server Configuration<a hidden class="anchor" aria-hidden="true" href="#example-parsing-a-server-configuration">#</a></h3>
+<p>Imagine we have a utility function, <code>NewServerConfig</code>, that takes a YAML byte slice as input and returns a <code>ServerConfig</code> struct or an error if the YAML is invalid or missing required fields.</p>
+<p>Here&rsquo;s the function we want to test (e.g., in a file named <code>config.go</code>):</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">config</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;gopkg.in/yaml.v3&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// ServerConfig defines the configuration for a server.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">ServerConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Host</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`yaml:&#34;host&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">Port</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="s">`yaml:&#34;port&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// NewServerConfig parses a YAML byte slice and returns a ServerConfig.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// It returns an error if parsing fails or if required fields are missing.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">NewServerConfig</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">ServerConfig</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="kd">var</span><span class="w"> </span><span class="nx">cfg</span><span class="w"> </span><span class="nx">ServerConfig</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">yaml</span><span class="p">.</span><span class="nf">Unmarshal</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cfg</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;failed to unmarshal yaml: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">Host</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;validation error: host is a required field&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">cfg</span><span class="p">.</span><span class="nx">Port</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;validation error: port is a required field&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cfg</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><em>Note: This example uses the popular <code>gopkg.in/yaml.v3</code> library. To add it to your project, run:</em> <code>go get gopkg.in/yaml.v3</code></p>
+<p>Now, let&rsquo;s write the test for it in <code>config_test.go</code> using the table-driven and subtest approach.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">config</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;errors&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;reflect&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;testing&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// TestNewServerConfig uses a table-driven approach to test the NewServerConfig function.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">TestNewServerConfig</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// The &#34;table&#34; is a slice of structs, where each struct is a complete test case.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">testCases</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">name</span><span class="w">          </span><span class="kt">string</span><span class="w"> </span><span class="c1">// A descriptive name for the test case.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">inputYAML</span><span class="w">     </span><span class="p">[]</span><span class="kt">byte</span><span class="w"> </span><span class="c1">// The input byte slice for our function.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">expectedCfg</span><span class="w">   </span><span class="o">*</span><span class="nx">ServerConfig</span><span class="w"> </span><span class="c1">// The expected successful output.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">expectedErr</span><span class="w">   </span><span class="kt">error</span><span class="w">    </span><span class="c1">// The expected error, if any.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">name</span><span class="p">:</span><span class="w">      </span><span class="s">&#34;valid config&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">inputYAML</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&#34;host: localhost\nport: 8080&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedCfg</span><span class="p">:</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">ServerConfig</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Host</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;localhost&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Port</span><span class="p">:</span><span class="w"> </span><span class="mi">8080</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedErr</span><span class="p">:</span><span class="w"> </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">name</span><span class="p">:</span><span class="w">          </span><span class="s">&#34;invalid yaml syntax&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">inputYAML</span><span class="p">:</span><span class="w">     </span><span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&#34;host: localhost\nport: 8080:&#34;</span><span class="p">),</span><span class="w"> </span><span class="c1">// Intentional syntax error</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedCfg</span><span class="p">:</span><span class="w">   </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedErr</span><span class="p">:</span><span class="w">   </span><span class="nx">errors</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="s">&#34;failed to unmarshal yaml&#34;</span><span class="p">),</span><span class="w"> </span><span class="c1">// We check for the error type, not the exact string.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">name</span><span class="p">:</span><span class="w">          </span><span class="s">&#34;missing required host field&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">inputYAML</span><span class="p">:</span><span class="w">     </span><span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&#34;port: 9000&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedCfg</span><span class="p">:</span><span class="w">   </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedErr</span><span class="p">:</span><span class="w">   </span><span class="nx">errors</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="s">&#34;validation error: host is a required field&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">name</span><span class="p">:</span><span class="w">          </span><span class="s">&#34;missing required port field&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">inputYAML</span><span class="p">:</span><span class="w">     </span><span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&#34;host: example.com&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedCfg</span><span class="p">:</span><span class="w">   </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedErr</span><span class="p">:</span><span class="w">   </span><span class="nx">errors</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="s">&#34;validation error: port is a required field&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">name</span><span class="p">:</span><span class="w">          </span><span class="s">&#34;empty input&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">inputYAML</span><span class="p">:</span><span class="w">     </span><span class="p">[]</span><span class="nb">byte</span><span class="p">(</span><span class="s">&#34;&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedCfg</span><span class="p">:</span><span class="w">   </span><span class="kc">nil</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">expectedErr</span><span class="p">:</span><span class="w">   </span><span class="nx">errors</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="s">&#34;failed to unmarshal yaml&#34;</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">},</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// We iterate over our test cases.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">testCases</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// t.Run creates a subtest. This allows for better test organization and reporting.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// The first argument is the name of the subtest, taken from our test case struct.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">tc</span><span class="p">.</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// This is the core of the test. We run the function we want to test.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">actualCfg</span><span class="p">,</span><span class="w"> </span><span class="nx">actualErr</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">NewServerConfig</span><span class="p">(</span><span class="nx">tc</span><span class="p">.</span><span class="nx">inputYAML</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// 1. Check the error.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// It&#39;s important to check if an error was expected or not.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">expectedErr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// We expected an error.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">actualErr</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	  </span><span class="nx">t</span><span class="p">.</span><span class="nf">Fatalf</span><span class="p">(</span><span class="s">&#34;expected error &#39;%v&#39;, but got nil&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">expectedErr</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// For better testing, we shouldn&#39;t compare error strings directly.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// Using errors.Is or errors.As is more robust. Here, for simplicity in demonstration,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// we are checking if the actual error string contains the expected one.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// A more robust check would use errors.Is. Let&#39;s demonstrate that.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// We can&#39;t use errors.Is for wrapped errors from yaml library directly,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// so we will check for our custom validation error messages.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;missing required host field&#34;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&#34;missing required port field&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	  </span><span class="k">if</span><span class="w"> </span><span class="nx">actualErr</span><span class="p">.</span><span class="nf">Error</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">expectedErr</span><span class="p">.</span><span class="nf">Error</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;expected error message &#39;%s&#39;, got &#39;%s&#39;&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">expectedErr</span><span class="p">,</span><span class="w"> </span><span class="nx">actualErr</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">actualErr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// We did NOT expect an error, but we got one.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">t</span><span class="p">.</span><span class="nf">Fatalf</span><span class="p">(</span><span class="s">&#34;did not expect an error, but got: %v&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">actualErr</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// 2. Check the returned configuration.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Using reflect.DeepEqual is the idiomatic way to compare structs, maps, and slices in tests.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">reflect</span><span class="p">.</span><span class="nf">DeepEqual</span><span class="p">(</span><span class="nx">actualCfg</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">expectedCfg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;expected config %+v, but got %+v&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="p">.</span><span class="nx">expectedCfg</span><span class="p">,</span><span class="w"> </span><span class="nx">actualCfg</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="running-the-tests-from-local-to-cicd">Running the Tests: From Local to CI/CD<a hidden class="anchor" aria-hidden="true" href="#running-the-tests-from-local-to-cicd">#</a></h3>
+<p>Now that you have the test file, running it is straightforward using the built-in Go tools.</p>
+<ul>
+<li>
+<p><strong>Run all tests in the package</strong>:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Command to execute from your terminal in the package directory.</span>
+</span></span><span class="line"><span class="cl">go <span class="nb">test</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># Output will be simple: PASS or FAIL.</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ---</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># PASS</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ok      your/module/config   0.015s</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>Run with verbose output</strong>:
+The <code>-v</code> flag provides detailed output, showing each subtest being run. This is extremely helpful for seeing which specific cases are passing.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Command</span>
+</span></span><span class="line"><span class="cl">go <span class="nb">test</span> -v
+</span></span><span class="line"><span class="cl"><span class="c1"># ---</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># === RUN   TestNewServerConfig</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># === RUN   TestNewServerConfig/valid_config</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># === RUN   TestNewServerConfig/invalid_yaml_syntax</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># === RUN   TestNewServerConfig/missing_required_host_field</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># === RUN   TestNewServerConfig/missing_required_port_field</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># === RUN   TestNewServerConfig/empty_input</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># --- PASS: TestNewServerConfig (0.00s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># --- PASS: TestNewServerConfig/valid_config (0.00s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># --- PASS: TestNewServerConfig/invalid_yaml_syntax (0.00s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># --- PASS: TestNewServerConfig/missing_required_host_field (0.00s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># --- PASS: TestNewServerConfig/missing_required_port_field (0.00s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># --- PASS: TestNewServerConfig/empty_input (0.00s)</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># PASS</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># ok      your/module/config   0.021s</span>
+</span></span></code></pre></div></li>
+<li>
+<p><strong>Run a specific subtest</strong>:
+If you have a failure in <code>missing_required_host_field</code>, you can run just that test.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Command uses a regex pattern. The forward slash separates the top-level test from the subtest.</span>
+</span></span><span class="line"><span class="cl">go <span class="nb">test</span> -v -run TestNewServerConfig/missing_required_host_field
+</span></span></code></pre></div></li>
+<li>
+<p><strong>Generate a coverage report</strong>:
+Code coverage is a critical metric in any CI environment.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># Command</span>
+</span></span><span class="line"><span class="cl">go <span class="nb">test</span> -coverprofile<span class="o">=</span>coverage.out
+</span></span><span class="line"><span class="cl"><span class="c1"># This generates a file &#39;coverage.out&#39; that can be processed.</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># To view the report in your browser:</span>
+</span></span><span class="line"><span class="cl">go tool cover -html<span class="o">=</span>coverage.out
+</span></span></code></pre></div></li>
+</ul>
+<h4 id="cicd-considerations">CI/CD Considerations<a hidden class="anchor" aria-hidden="true" href="#cicd-considerations">#</a></h4>
+<p>In a CI/CD pipeline (e.g., GitHub Actions, GitLab CI), you would typically run tests for your entire project:</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># Example snippet for a GitHub Actions workflow</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">jobs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">test</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l">ubuntu-latest</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">steps</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l">actions/checkout@v4</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l">actions/setup-go@v5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">with</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">go-version</span><span class="p">:</span><span class="w"> </span><span class="s1">&#39;1.24&#39;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">Run tests with coverage</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l">go test -v -coverprofile=coverage.out ./...</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">Upload coverage report</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l">actions/upload-artifact@v4</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">with</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">coverage-report</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l">coverage.out</span><span class="w">
+</span></span></span></code></pre></div><p>The <code>./...</code> wildcard tells Go to run tests in the current directory and all subdirectories recursively. The verbose (<code>-v</code>) flag ensures that CI logs provide immediate, clear feedback on which tests ran and which, if any, failed.</p>
+<hr>
+<h2 id="gotchas--best-practices">Gotchas &amp; Best Practices<a hidden class="anchor" aria-hidden="true" href="#gotchas--best-practices">#</a></h2>
+<p>While the table-driven pattern is powerful, there are common pitfalls to avoid. Adhering to best practices will ensure your tests remain robust, readable, and maintainable.</p>
+<h3 id="1-the-loop-variable-capture-pitfall-in-parallel-tests">1. The Loop Variable Capture Pitfall in Parallel Tests<a hidden class="anchor" aria-hidden="true" href="#1-the-loop-variable-capture-pitfall-in-parallel-tests">#</a></h3>
+<p>This is the most famous &ldquo;gotcha.&rdquo; When you use <code>t.Parallel()</code> inside a subtest to speed up your test suite, you can run into issues with Go&rsquo;s loop variable scoping. In older versions of Go, the subtest&rsquo;s function literal would capture a reference to the loop variable (<code>tc</code>), not its value. Because the parallel subtests don&rsquo;t execute immediately, by the time they do run, the loop may have already finished, and <code>tc</code> will be referencing the <em>last</em> item in the slice for all subtests.</p>
+<p><strong>Go 1.22+ largely fixed this issue for <code>for</code> loops</strong>, but it&rsquo;s crucial to understand the problem as you may encounter it in older codebases or different loop constructs.</p>
+<h3 id="2-opaque-test-failure-messages">2. Opaque Test Failure Messages<a hidden class="anchor" aria-hidden="true" href="#2-opaque-test-failure-messages">#</a></h3>
+<p>A test that fails with a message like <code>&quot;expected true, got false&quot;</code> is not helpful. Your failure messages should provide context. Instead of just stating the failure, include the inputs and the differing outputs.</p>
+<p>Use <code>t.Errorf()</code> with detailed format strings:
+<code>t.Errorf(&quot;For input '%s', expected output '%d' but got '%d'&quot;, tc.input, tc.expected, actual)</code></p>
+<p>This immediately tells the developer what failed and why, saving valuable debugging time.</p>
+<h3 id="3-improper-error-comparison">3. Improper Error Comparison<a hidden class="anchor" aria-hidden="true" href="#3-improper-error-comparison">#</a></h3>
+<p>Comparing errors by their string representation (<code>err.Error() == &quot;some string&quot;</code>) is brittle. Error messages can change, and this approach fails to properly handle wrapped errors.</p>
+<ul>
+<li><strong>Use <code>errors.Is(err, target)</code></strong>: This should be your default choice. It checks if any error in the chain matches the <code>target</code> error instance. This is perfect for checking against sentinel errors (e.g., <code>sql.ErrNoRows</code>).</li>
+<li><strong>Use <code>errors.As(err, &amp;target)</code></strong>: Use this when you need to check if an error in the chain is of a specific <em>type</em> and you want to inspect its fields.</li>
+</ul>
+<h3 id="4-modifying-shared-state-between-subtests">4. Modifying Shared State Between Subtests<a hidden class="anchor" aria-hidden="true" href="#4-modifying-shared-state-between-subtests">#</a></h3>
+<p>Subtests, especially when run in parallel, must be independent. If your test cases modify a shared global variable, a shared map, or a common resource without proper synchronization, you will introduce flaky, unpredictable tests.</p>
+<p>Always ensure that each subtest works on its own isolated data. If setup is required, perform it <em>inside</em> the <code>t.Run</code> block or use <code>t.Cleanup</code> to ensure resources are properly reset after each subtest.</p>
+<h3 id="5-test-naming-and-readability">5. Test Naming and Readability<a hidden class="anchor" aria-hidden="true" href="#5-test-naming-and-readability">#</a></h3>
+<p>The <code>name</code> field in your test case struct is not just a label; it&rsquo;s a piece of documentation. Good names describe the <em>scenario</em> being tested.</p>
+<ul>
+<li><strong>Bad</strong>: <code>&quot;test 1&quot;</code>, <code>&quot;case 2&quot;</code></li>
+<li><strong>Good</strong>: <code>&quot;valid config with all fields&quot;</code>, <code>&quot;error on missing host&quot;</code>, <code>&quot;handles empty input gracefully&quot;</code></li>
+</ul>
+<p>Clear names make the test output from <code>go test -v</code> a readable report on your function&rsquo;s behavior.</p>
+<hr>
+<h2 id="code-examples-gotchas-and-remediation">Code Examples: Gotchas and Remediation<a hidden class="anchor" aria-hidden="true" href="#code-examples-gotchas-and-remediation">#</a></h2>
+<p>Here are concrete code examples demonstrating the pitfalls and how to correct them.</p>
+<h3 id="pitfall-1-loop-variable-capture-in-parallel-tests">Pitfall 1: Loop Variable Capture in Parallel Tests<a hidden class="anchor" aria-hidden="true" href="#pitfall-1-loop-variable-capture-in-parallel-tests">#</a></h3>
+<p>Even though Go 1.22+ fixed this for <code>for</code> loops, it&rsquo;s vital to know the classic pattern for ensuring correctness in any version or context.</p>
+<h4 id="-incorrect-code-classic-bug">❌ Incorrect Code (Classic Bug)<a hidden class="anchor" aria-hidden="true" href="#-incorrect-code-classic-bug">#</a></h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestParallel_Incorrect</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">testCases</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;a&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;b&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;c&#34;</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">testCases</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// In older Go versions, all subtests would capture the last value of tc, which is &#34;c&#34;.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">tc</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">t</span><span class="p">.</span><span class="nf">Parallel</span><span class="p">()</span><span class="w"> </span><span class="c1">// Mark subtest for parallel execution.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// This test would likely fail for &#34;a&#34; and &#34;b&#34; because tc would be &#34;c&#34;.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">t</span><span class="p">.</span><span class="nf">Logf</span><span class="p">(</span><span class="s">&#34;Testing with value: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Imagine an assertion here: if tc != &#34;c&#34; { t.Error(...) }</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h4 id="-remediated-code">✅ Remediated Code<a hidden class="anchor" aria-hidden="true" href="#-remediated-code">#</a></h4>
+<p>The classic fix, which works in all Go versions and is still good practice for clarity, is to re-shadow the loop variable inside the loop.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestParallel_Correct</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">testCases</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;a&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;b&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;c&#34;</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">testCases</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="c1">// Shadow the loop variable. tc is now a new variable local to this loop iteration.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">tc</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">t</span><span class="p">.</span><span class="nf">Parallel</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Now, each subtest has its own immutable copy of tc.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">t</span><span class="p">.</span><span class="nf">Logf</span><span class="p">(</span><span class="s">&#34;Correctly testing with value: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Assertions here will work as expected.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="pitfall-2-opaque-test-failure-messages">Pitfall 2: Opaque Test Failure Messages<a hidden class="anchor" aria-hidden="true" href="#pitfall-2-opaque-test-failure-messages">#</a></h3>
+<p>Clear failures are non-negotiable for efficient debugging, especially in a CI/CD context.</p>
+<h4 id="-incorrect-code">❌ Incorrect Code<a hidden class="anchor" aria-hidden="true" href="#-incorrect-code">#</a></h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestFailureMessage_Incorrect</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">output</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">&#34;hello world&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">expected</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">&#34;hello go&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">output</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">expected</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// This message is not helpful. Why did it fail? What were the values?</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="s">&#34;output did not match expected&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h4 id="-remediated-code-1">✅ Remediated Code<a hidden class="anchor" aria-hidden="true" href="#-remediated-code-1">#</a></h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestFailureMessage_Correct</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">output</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">&#34;hello world&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">expected</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">&#34;hello go&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">output</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">expected</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// This message gives the developer immediate, actionable information.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;handler returned unexpected body: got %q want %q&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">output</span><span class="p">,</span><span class="w"> </span><span class="nx">expected</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><em>Note: The <code>%q</code> verb in format strings is excellent for strings as it safely quotes them.</em></p>
+<h3 id="pitfall-3-improper-error-comparison">Pitfall 3: Improper Error Comparison<a hidden class="anchor" aria-hidden="true" href="#pitfall-3-improper-error-comparison">#</a></h3>
+<p>Relying on string comparison for errors is fragile. Use Go&rsquo;s <code>errors</code> package.</p>
+<h4 id="-incorrect-code-1">❌ Incorrect Code<a hidden class="anchor" aria-hidden="true" href="#-incorrect-code-1">#</a></h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;errors&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;testing&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">var</span><span class="w"> </span><span class="nx">ErrCustom</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nf">New</span><span class="p">(</span><span class="s">&#34;my custom error&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">functionThatWrapsError</span><span class="p">()</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;an issue occurred: %w&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">ErrCustom</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">TestErrorComparison_Incorrect</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">functionThatWrapsError</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// This is brittle. The wrapper message &#34;an issue occurred: &#34; might change.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="p">.</span><span class="nf">Error</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&#34;an issue occurred: my custom error&#34;</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unexpected error message: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h4 id="-remediated-code-2">✅ Remediated Code<a hidden class="anchor" aria-hidden="true" href="#-remediated-code-2">#</a></h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;errors&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="s">&#34;testing&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// (assuming same ErrCustom and functionThatWrapsError from above)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">TestErrorComparison_Correct</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">functionThatWrapsError</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// Robust and correct. It checks if ErrCustom is in the error chain.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">errors</span><span class="p">.</span><span class="nf">Is</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">ErrCustom</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;expected error to be &#39;%v&#39;, but it was not&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">ErrCustom</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="pitfall-4-modifying-shared-state-between-subtests">Pitfall 4: Modifying Shared State Between Subtests<a hidden class="anchor" aria-hidden="true" href="#pitfall-4-modifying-shared-state-between-subtests">#</a></h3>
+<p>Tests must be isolated to be reliable. Shared state is a common source of flaky tests that fail intermittently.</p>
+<h4 id="-incorrect-code-2">❌ Incorrect Code<a hidden class="anchor" aria-hidden="true" href="#-incorrect-code-2">#</a></h4>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestSharedState_Incorrect</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c1">// This shared map is a problem.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">sharedData</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">testCases</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;first&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;second&#34;</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">testCases</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">tc</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">t</span><span class="p">.</span><span class="nf">Parallel</span><span class="p">()</span><span class="w"> </span><span class="c1">// Running in parallel makes the race condition obvious.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Both subtests will race to write to the same map key.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">sharedData</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">tc</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">sharedData</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">tc</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;data corruption detected! got %s, want %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">sharedData</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">],</span><span class="w"> </span><span class="nx">tc</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h4 id="-remediated-code-3">✅ Remediated Code<a hidden class="anchor" aria-hidden="true" href="#-remediated-code-3">#</a></h4>
+<p>The solution is to give each subtest its own state.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TestSharedState_Correct</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nx">testCases</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;first&#34;</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;second&#34;</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">testCases</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">name</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="c1">// Shadow variable for parallelism.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">t</span><span class="p">.</span><span class="nf">Run</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">t</span><span class="w"> </span><span class="o">*</span><span class="nx">testing</span><span class="p">.</span><span class="nx">T</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">t</span><span class="p">.</span><span class="nf">Parallel</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="c1">// Each subtest gets its own isolated map. No shared state.</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">localData</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nx">localData</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">name</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="nx">localData</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">t</span><span class="p">.</span><span class="nf">Errorf</span><span class="p">(</span><span class="s">&#34;unexpected value: got %s, want %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">localData</span><span class="p">[</span><span class="s">&#34;key&#34;</span><span class="p">],</span><span class="w"> </span><span class="nx">name</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/articles/tags/golang/">Golang</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/articles/golang/interfaces/">
+    <span class="title">« Prev</span>
+    <br>
+    <span>interfaces</span>
+  </a>
+  <a class="next" href="http://localhost:1313/articles/golang/tooling/">
+    <span class="title">Next »</span>
+    <br>
+    <span>tooling</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span>&copy; 2025 <a href="http://localhost:1313/articles/">elkokito</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = 'copy';
+
+        function copyingDone() {
+            copybutton.innerHTML = 'copied!';
+            setTimeout(() => {
+                copybutton.innerHTML = 'copy';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
