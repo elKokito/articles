@@ -49,7 +49,7 @@ jobs:
         id: pages
         uses: actions/configure-pages@v5
       
-      - name: Build with Hugo
+      - name: Build with Hugo (Main Site)
         env:
           HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
           HUGO_ENVIRONMENT: production
@@ -58,6 +58,22 @@ jobs:
             --gc \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
+      
+      - name: Build with Hugo (EPUB Version)
+        env:
+          HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
+          HUGO_ENVIRONMENT: production
+        run: |
+          hugo \
+            --config hugo-epub.toml \
+            --gc \
+            --minify \
+            --baseURL "${{ steps.pages.outputs.base_url }}/epub/"
+      
+      - name: Copy EPUB build to subdirectory
+        run: |
+          mkdir -p ./public/epub
+          cp -r ./public-epub/* ./public/epub/
       
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

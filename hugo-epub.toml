@@ -1,13 +1,19 @@
-baseURL = 'https://elkokito.github.io/articles'
+
 languageCode = 'en-us'
-title = 'elkokito'
+title = 'elkokito - EPUB'
 theme = 'PaperMod'
+
+# Output to a different directory for EPUB-friendly build
+publishDir = 'public-epub'
+
+# EPUB version will be at /epub/ subdirectory
+baseURL = 'https://elkokito.github.io/articles/epub/'
 
 # Pagination settings
 [pagination]
   pagerSize = 50  # Show 50 articles per page (default is 10)
 
-# Enable Mermaid diagrams
+# Enable Mermaid diagrams (SVG works in EPUB)
 [markup]
   [markup.goldmark]
     [markup.goldmark.renderer]
@@ -23,10 +29,13 @@ theme = 'PaperMod'
   description = "much wow"
   author = "elkokito"
 
-  # Theme settings
-  defaultTheme = "dark"
-  disableThemeToggle = false
-  ShowCodeCopyButtons = true
+  # EPUB-friendly settings
+  epubMode = true  # Custom param to detect EPUB build
+  
+  # Disable interactive features
+  defaultTheme = "light"
+  disableThemeToggle = true
+  ShowCodeCopyButtons = false
   ShowReadingTime = true
   ShowShareButtons = false
   ShowPostNavLinks = true
@@ -35,32 +44,12 @@ theme = 'PaperMod'
   ShowFullTextinRSS = true
 
   # List view settings
-  ShowSummary = false  # Don't show article previews, just titles
+  ShowSummary = false
 
-  # Enable search
-  [params.fuseOpts]
-    isCaseSensitive = false
-    shouldSort = true
-    location = 0
-    distance = 1000
-    threshold = 0.4
-    minMatchCharLength = 0
-    keys = ["title", "permalink", "summary", "content"]
-  
-  # Home page settings - show recent posts with search
-  homeInfoParams = false  # Disable the info banner
-  
-  # Enable search on home page
-  [params.profileMode]
-    enabled = false
-  
-  # Show recent posts on home page
-  mainSections = ["golang", "flutter", "bubbletea"]
-
-  # Custom assets
+  # Disable custom CSS and JS for EPUB
   [params.assets]
     disableHLJS = false
-    customCSS = ["css/extended/custom.css"]
+    # No customCSS for EPUB build
 
 # Menu
 [[menu.main]]
@@ -93,3 +82,4 @@ theme = 'PaperMod'
     enableDNT = true
   [privacy.youtube]
     privacyEnhanced = true
+

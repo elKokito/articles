@@ -1,0 +1,205 @@
+{{- $diagram := .Get "diagram" -}}
+{{- $nodes := .Params.nodes -}}
+
+{{ if .Site.Params.epubMode }}
+  {{/* EPUB MODE: Show diagram + inline code blocks */}}
+  
+  <div class="architecture-diagram">
+    {{ $diagram | safeHTML }}
+  </div>
+
+  <div class="code-sections">
+    {{ range $nodes }}
+      <div class="code-section" id="{{ .id }}">
+        <h3>{{ .title }}</h3>
+        {{ .description | markdownify }}
+        {{ highlight .code .lang "" }}
+        {{ with .notes }}
+          <div class="notes">
+            {{ . | markdownify }}
+          </div>
+        {{ end }}
+      </div>
+    {{ end }}
+  </div>
+
+{{ else }}
+  {{/* BROWSER MODE: Interactive side panel */}}
+  
+  <div class="architecture-diagram">
+    {{ $diagram | safeHTML }}
+  </div>
+
+  <!-- Hidden code blocks for side panel -->
+  <div id="code-blocks" style="display: none;">
+    {{ range $nodes }}
+      <div data-node="{{ .id }}" class="code-block">
+        <h3>{{ .title }}</h3>
+        {{ .description | markdownify }}
+        {{ highlight .code .lang "" }}
+        {{ with .notes }}
+          <div class="notes">
+            {{ . | markdownify }}
+          </div>
+        {{ end }}
+      </div>
+    {{ end }}
+  </div>
+
+  <!-- Side panel -->
+  <div id="code-panel" class="code-panel">
+    <div class="code-panel-header">
+      <span class="code-panel-title">Select a component</span>
+      <button id="close-panel" class="close-panel-btn">×</button>
+    </div>
+    <div id="code-panel-content" class="code-panel-content">
+      <p style="color: #888; text-align: center; margin-top: 2em;">Click on any box in the diagram to view its code</p>
+    </div>
+  </div>
+
+  <script>
+  // Wait for Mermaid to render
+  setTimeout(() => {
+    const mermaidSvg = document.querySelector('.architecture-diagram .mermaid svg');
+    if (!mermaidSvg) return;
+
+    const codePanel = document.getElementById('code-panel');
+    const codePanelContent = document.getElementById('code-panel-content');
+    const closeBtn = document.getElementById('close-panel');
+    const codeBlocks = document.querySelectorAll('#code-blocks .code-block');
+
+    const codeMap = {};
+    codeBlocks.forEach(block => {
+      const nodeName = block.getAttribute('data-node');
+      codeMap[nodeName] = block.innerHTML;
+    });
+
+    const nodes = mermaidSvg.querySelectorAll('.node');
+    nodes.forEach(node => {
+      node.style.cursor = 'pointer';
+      
+      node.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const textElement = node.querySelector('.nodeLabel');
+        if (!textElement) return;
+        const text = textElement.textContent.trim();
+        
+        let matchedCode = null;
+        for (const [key, value] of Object.entries(codeMap)) {
+          if (text.includes(key) || key.toLowerCase() === text.toLowerCase().split(/\s+/)[0].toLowerCase()) {
+            matchedCode = value;
+            break;
+          }
+        }
+        
+        if (matchedCode) {
+          codePanelContent.innerHTML = matchedCode;
+          codePanel.classList.add('open');
+          if (window.Prism) Prism.highlightAllUnder(codePanelContent);
+        }
+      });
+
+      node.addEventListener('mouseenter', () => { node.style.opacity = '0.8'; });
+      node.addEventListener('mouseleave', () => { node.style.opacity = '1'; });
+    });
+
+    closeBtn.addEventListener('click', () => {
+      codePanel.classList.remove('open');
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') codePanel.classList.remove('open');
+    });
+  }, 1000);
+  </script>
+
+  <style>
+  .code-panel {
+    position: fixed;
+    right: -45%;
+    top: 0;
+    width: 45%;
+    height: 100vh;
+    background-color: #0a0a0a;
+    border-left: 2px solid #BB86FC;
+    z-index: 1000;
+    transition: right 0.3s ease-in-out;
+    overflow-y: auto;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.5);
+  }
+
+  .code-panel.open {
+    right: 0;
+  }
+
+  .code-panel-header {
+    position: sticky;
+    top: 0;
+    background-color: #0a0a0a;
+    border-bottom: 1px solid #BB86FC;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1001;
+  }
+
+  .code-panel-title {
+    color: #BB86FC;
+    font-weight: bold;
+    font-size: 1.1em;
+  }
+
+  .close-panel-btn {
+    background: none;
+    border: 1px solid #BB86FC;
+    color: #BB86FC;
+    font-size: 1.5em;
+    width: 2em;
+    height: 2em;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .close-panel-btn:hover {
+    background-color: #BB86FC;
+    color: #000;
+  }
+
+  .code-panel-content {
+    padding: 1.5rem;
+    color: #E1E1E1;
+  }
+
+  .code-panel-content h3 {
+    color: #03DAC6;
+    margin-top: 0;
+    margin-bottom: 1em;
+  }
+
+  .code-panel-content pre {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin: 1em 0;
+  }
+
+  .mermaid .node {
+    transition: opacity 0.2s;
+  }
+
+  @media (max-width: 1200px) {
+    .code-panel { width: 60%; right: -60%; }
+  }
+
+  @media (max-width: 768px) {
+    .code-panel { width: 100%; right: -100%; }
+  }
+  </style>
+
+{{ end }}
+

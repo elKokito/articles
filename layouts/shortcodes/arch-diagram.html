@@ -1,0 +1,112 @@
+{{- $diagramName := .Get 0 -}}
+{{- $data := index .Site.Data.diagrams $diagramName -}}
+
+{{ if .Site.Params.epubMode }}
+  {{/* ============ EPUB MODE: Inline everything ============ */}}
+  
+  <div class="mermaid">
+{{ $data.mermaid }}
+  </div>
+
+  <hr>
+
+  {{ range $data.nodes }}
+  <div class="code-section" id="{{ .id }}">
+    <h2>{{ .title }}</h2>
+    {{ .description | markdownify }}
+    {{ highlight .code .lang "" }}
+    {{ with .notes }}
+{{ . | markdownify }}
+    {{ end }}
+    <hr>
+  </div>
+  {{ end }}
+
+{{ else }}
+  {{/* ============ BROWSER MODE: Interactive side panel ============ */}}
+  
+  <div class="mermaid">
+{{ $data.mermaid }}
+  </div>
+
+  <!-- Hidden code blocks for side panel -->
+  <div id="code-blocks-{{ $diagramName }}" style="display: none;">
+    {{ range $data.nodes }}
+      <div data-node="{{ .id }}" class="code-block">
+        <h3>{{ .title }}</h3>
+        {{ .description | markdownify }}
+        {{ highlight .code .lang "" }}
+        {{ with .notes }}
+{{ . | markdownify }}
+        {{ end }}
+      </div>
+    {{ end }}
+  </div>
+
+  <!-- Side panel (only create once) -->
+  <div id="code-panel-{{ $diagramName }}" class="code-panel">
+    <div class="code-panel-header">
+      <span class="code-panel-title">Component Details</span>
+      <button class="close-panel-btn" onclick="this.closest('.code-panel').classList.remove('open')">×</button>
+    </div>
+    <div class="code-panel-content">
+      <p style="color: #888; text-align: center; margin-top: 2em;">Click on any box in the diagram to view its code</p>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const diagramId = '{{ $diagramName }}';
+    
+    setTimeout(() => {
+      const containers = document.querySelectorAll('.mermaid');
+      const mermaidSvg = containers[containers.length - 1]?.querySelector('svg');
+      if (!mermaidSvg) return;
+
+      const codePanel = document.getElementById('code-panel-' + diagramId);
+      const codePanelContent = codePanel.querySelector('.code-panel-content');
+      const codeBlocks = document.querySelectorAll('#code-blocks-' + diagramId + ' .code-block');
+
+      const codeMap = {};
+      codeBlocks.forEach(block => {
+        const nodeName = block.getAttribute('data-node');
+        codeMap[nodeName] = block.innerHTML;
+      });
+
+      const nodes = mermaidSvg.querySelectorAll('.node');
+      nodes.forEach(node => {
+        node.style.cursor = 'pointer';
+        
+        node.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const textElement = node.querySelector('.nodeLabel');
+          if (!textElement) return;
+          const text = textElement.textContent.trim();
+          
+          let matchedCode = null;
+          for (const [key, value] of Object.entries(codeMap)) {
+            if (text.includes(key) || key.toLowerCase() === text.toLowerCase().split(/[\s\n]+/)[0].toLowerCase()) {
+              matchedCode = value;
+              break;
+            }
+          }
+          
+          if (matchedCode) {
+            codePanelContent.innerHTML = matchedCode;
+            codePanel.classList.add('open');
+          }
+        });
+
+        node.addEventListener('mouseenter', () => { node.style.opacity = '0.8'; });
+        node.addEventListener('mouseleave', () => { node.style.opacity = '1'; });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') codePanel.classList.remove('open');
+      });
+    }, 1000);
+  })();
+  </script>
+
+{{ end }}
+

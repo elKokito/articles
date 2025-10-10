@@ -1,6 +1,12 @@
 <!-- Mermaid.js for rendering diagrams -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js"></script>
 <script>
+  {{ if .Site.Params.epubMode }}
+  mermaid.initialize({ 
+    startOnLoad: true,
+    theme: 'neutral'
+  });
+  {{ else }}
   mermaid.initialize({ 
     startOnLoad: true,
     theme: 'dark',
@@ -29,5 +35,6 @@
       fontFamily: 'ui-monospace, monospace'
     }
   });
+  {{ end }}
 </script>
 
